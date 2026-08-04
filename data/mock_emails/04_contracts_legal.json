@@ -1,0 +1,42 @@
+[
+  {
+    "message_id": "<msg-014@legal.example.com>",
+    "sender": "法务部 <legal@example-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【请审阅】与 Acme 公司服务合同 V2.1",
+    "body_text": "您好，\n\n附件是与 Acme 公司续签的服务合同 V2.1 版，主要变更：\n1. 服务期延长至 2027 年 12 月 31 日\n2. 月费调整为 38,000 元（含税）\n3. 增加数据安全附件（附件 B）\n\n请于 2026 年 8 月 5 日前完成审阅并反馈意见。\n\n法务部",
+    "sent_at": "2026-07-30T14:20:00+08:00",
+    "thread_id": "t-contract-001",
+    "labels": ["work", "legal", "important"]
+  },
+  {
+    "message_id": "<msg-015@legal.example.com>",
+    "sender": "法务部 <legal@example-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【保密协议】NDA 修订版待签署",
+    "body_text": "您好，根据合规要求，公司对员工保密协议（NDA）进行了更新，主要涉及：\n- 增加竞业限制条款\n- 延长保密期至离职后 3 年\n- 明确电子签章效力\n\n请于 8 月 10 日前完成电子签署，逾期将影响绩效评估。\n\n法务部",
+    "sent_at": "2026-08-01T10:00:00+08:00",
+    "thread_id": "t-contract-002",
+    "labels": ["work", "legal"]
+  },
+  {
+    "message_id": "<msg-016@legal.example.com>",
+    "sender": "外聘律师 - 张律师 <zhang@lawfirm-partner.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "Re: 关于客户数据合规的咨询",
+    "body_text": "您好，\n\n针对您昨日咨询的客户数据跨境传输合规问题，回复如下：\n\n根据《个人信息保护法》第 38 条，向境外提供个人信息需满足以下条件之一：\n1. 通过国家网信部门组织的安全评估\n2. 按规定经专业机构进行个人信息保护认证\n3. 与境外接收方订立标准合同\n\n鉴于贵司目前体量，建议优先采用「标准合同」路径，6 周内可完成备案。\n\n如有进一步问题，请随时联系。\n\n张律师",
+    "sent_at": "2026-08-02T16:30:00+08:00",
+    "thread_id": "t-contract-003",
+    "labels": ["work", "legal"]
+  },
+  {
+    "message_id": "<msg-017@legal.example.com>",
+    "sender": "Acme 法务 <legal@customer-acme.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "Re: 主服务协议 - 我方修改意见",
+    "body_text": "您好，\n\n我方对主服务协议（MSA）的修改意见如下：\n1. 第 5.2 条「不可抗力」范围希望增加「重大供应链中断」\n2. 第 8.1 条付款账期由 30 天延长至 45 天\n3. 第 12 条争议解决由北京改为上海仲裁委\n\n详见附件红色标注版。请贵方安排时间讨论。\n\nAcme 法务部",
+    "sent_at": "2026-08-03T09:45:00+08:00",
+    "thread_id": "t-contract-004",
+    "labels": ["work", "legal", "important"]
+  }
+]

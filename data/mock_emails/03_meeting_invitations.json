@@ -1,0 +1,42 @@
+[
+  {
+    "message_id": "<msg-010@meeting.example.com>",
+    "sender": "李雷 <lilei@example-corp.com>",
+    "recipients": ["user@deepmail.local", "hanmeimei@example-corp.com"],
+    "subject": "【会议邀请】项目 A 周会 - 8 月 4 日 10:00",
+    "body_text": "Hi 各位，邀请大家参加项目 A 的周会。\n\n时间：2026 年 8 月 4 日（周二）10:00 - 11:00\n地点：腾讯会议 123-456-789\n\n议程：\n1. 上周进度回顾\n2. 本周计划\n3. 风险与阻塞\n\n请准时参加。\n\n李雷",
+    "sent_at": "2026-08-01T15:30:00+08:00",
+    "thread_id": "t-meeting-001",
+    "labels": ["work", "meeting"]
+  },
+  {
+    "message_id": "<msg-011@meeting.example.com>",
+    "sender": "王芳 <wangfang@example-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【产品评审】V3.0 大版本评审会议",
+    "body_text": "邀请您参加 V3.0 大版本产品评审。\n\n时间：2026 年 8 月 6 日（周四）14:00 - 16:00\n地点：3 楼会议室 A\n\n评审材料已上传至 Confluence，请提前查看：https://example-corp.atlassian.net/wiki/v3-review\n\n王芳",
+    "sent_at": "2026-08-02T09:15:00+08:00",
+    "thread_id": "t-meeting-002",
+    "labels": ["work", "meeting", "review"]
+  },
+  {
+    "message_id": "<msg-012@meeting.example.com>",
+    "sender": "客户 - 张总 <zhang@customer-acme.com>",
+    "recipients": ["user@deepmail.local", "sales@example-corp.com"],
+    "subject": "【客户演示】Acme 公司产品演示 - 8 月 7 日",
+    "body_text": "您好，确认 8 月 7 日（周五）15:00 的产品演示。届时请贵方团队接入腾讯会议 987-654-321，重点演示数据看板与权限管理模块。\n\n张总",
+    "sent_at": "2026-08-02T11:42:00+08:00",
+    "thread_id": "t-meeting-003",
+    "labels": ["work", "customer"]
+  },
+  {
+    "message_id": "<msg-013@meeting.example.com>",
+    "sender": "HR <hr@example-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【全员会议】Q3 季度复盘大会",
+    "body_text": "各位同事：\n\nQ3 季度复盘大会定于 8 月 8 日（周六）上午 9:00 - 12:00 在公司大礼堂举行，请全体员工准时参加。\n\n议程：\n1. CEO 致辞\n2. Q3 业务回顾\n3. Q4 战略发布\n4. 优秀员工颁奖\n\nHR",
+    "sent_at": "2026-08-03T08:00:00+08:00",
+    "thread_id": "t-meeting-004",
+    "labels": ["work", "company"]
+  }
+]

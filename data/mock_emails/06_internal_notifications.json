@@ -1,0 +1,52 @@
+[
+  {
+    "message_id": "<msg-022@internal.example.com>",
+    "sender": "运维部 <ops@example-corp.com>",
+    "recipients": ["all@example-corp.com"],
+    "subject": "【系统维护】8 月 5 日凌晨 2:00 - 4:00 核心系统升级",
+    "body_text": "各位同事：\n\n为提升系统稳定性，运维部将于 8 月 5 日（周三）凌晨 2:00 - 4:00 进行核心数据库升级。\n\n影响范围：\n- 内部 OA 系统（不可用 30 分钟）\n- 财务系统（只读，不影响查询）\n- 邮件系统（正常）\n\n如有紧急需求，请提前安排。\n\n运维部",
+    "sent_at": "2026-08-01T16:00:00+08:00",
+    "thread_id": "t-notification-001",
+    "labels": ["work", "ops"]
+  },
+  {
+    "message_id": "<msg-023@internal.example.com>",
+    "sender": "HR <hr@example-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【HR 通知】2026 年度体检安排",
+    "body_text": "您好，\n\n2026 年度员工体检定于 9 月 1 日 - 9 月 30 日进行，请于 8 月 20 日前在 OA 系统完成预约。\n\n体检机构：爱康国宾、美年大健康（任选）\n体检项目：在原基础套餐上新增甲状腺彩超\n\n注意事项：\n- 体检前一天晚上 10 点后禁食\n- 携带身份证原件\n\nHR",
+    "sent_at": "2026-08-02T09:00:00+08:00",
+    "thread_id": "t-notification-002",
+    "labels": ["work", "hr"]
+  },
+  {
+    "message_id": "<msg-024@internal.example.com>",
+    "sender": "行政部 <admin@example-corp.com>",
+    "recipients": ["all@example-corp.com"],
+    "subject": "【公司政策】关于远程办公的最新规定",
+    "body_text": "各位同事：\n\n经管理层决议，自 9 月 1 日起远程办公政策调整如下：\n- 每周最多远程 2 天（须提前 1 天报备）\n- 全员大会日（每周一）必须在岗\n- 跨部门会议如需线下，提前 24 小时通知\n\n详细规定见 OA → 人事制度 → 远程办公管理办法。\n\n行政部",
+    "sent_at": "2026-08-02T14:00:00+08:00",
+    "thread_id": "t-notification-003",
+    "labels": ["work", "policy"]
+  },
+  {
+    "message_id": "<msg-025@internal.example.com>",
+    "sender": "培训中心 <training@example-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【培训通知】8 月 15 日 AI 与大模型应用实战培训",
+    "body_text": "您好，\n\n培训中心诚邀您参加 8 月 15 日（周六）09:00 - 17:00 的「AI 与大模型应用实战」培训。\n\n讲师：外部专家，前阿里达摩院研究员\n地点：公司大会议室\n\n课程大纲：\n1. LLM 基础与提示工程\n2. RAG 与 Agent 架构\n3. LangChain / LangGraph 实战\n4. 案例分享与项目演练\n\n报名截止：8 月 10 日\n\n培训中心",
+    "sent_at": "2026-08-03T10:00:00+08:00",
+    "thread_id": "t-notification-004",
+    "labels": ["work", "training"]
+  },
+  {
+    "message_id": "<msg-026@internal.example.com>",
+    "sender": "直属上级 - 陈总监 <chen.director@example-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【绩效通知】Q2 绩效面谈安排",
+    "body_text": "你好，\n\nQ2 绩效面谈安排如下：\n\n时间：8 月 9 日（周日）14:00 - 15:00\n地点：总监办公室\n\n请提前准备：\n1. Q2 工作总结（不超过 5 页）\n2. Q3 OKR 草案\n3. 遇到的 3 个最大挑战\n\n如有特殊情况请提前沟通调整。\n\n陈总监",
+    "sent_at": "2026-08-03T17:00:00+08:00",
+    "thread_id": "t-notification-005",
+    "labels": ["work", "performance", "important"]
+  }
+]

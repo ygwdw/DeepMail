@@ -1,0 +1,42 @@
+[
+  {
+    "message_id": "<msg-018@customer.example.com>",
+    "sender": "客户 - 陈先生 <chen.kf@beta-customer.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "咨询：能否支持 SAML 单点登录？",
+    "body_text": "您好，\n\n我们公司目前使用 Okta 进行身份管理，希望了解贵司产品是否支持 SAML 2.0 单点登录？另外是否支持 SCIM 自动 provisioning？\n\n预算：8 月底前完成 PoC\n规模：约 500 个账号\n\n期待您的回复。\n\n陈先生\nBeta 公司 IT 负责人",
+    "sent_at": "2026-07-29T11:20:00+08:00",
+    "thread_id": "t-customer-001",
+    "labels": ["work", "customer", "sales"]
+  },
+  {
+    "message_id": "<msg-019@customer.example.com>",
+    "sender": "客户 - 林女士 <lin.support@gamma-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "紧急：API 调用频繁报 429 错误",
+    "body_text": "您好，\n\n我司使用贵司 API 时，从今日上午开始持续出现 429（Too Many Requests）错误。已影响我司线上业务，请协助排查。\n\n调用方：mobile-api (account: gamma-mobile)\n错误开始时间：2026-08-02 09:30 UTC+8\n请求 ID 示例：req-7a8b9c\n\n请尽快回复。\n\n林女士\nGamma 公司 技术支持",
+    "sent_at": "2026-08-02T10:05:00+08:00",
+    "thread_id": "t-customer-002",
+    "labels": ["work", "customer", "urgent"]
+  },
+  {
+    "message_id": "<msg-020@customer.example.com>",
+    "sender": "客户 - 周总 <zhou@delta-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "合作意向：希望成为贵司区域代理",
+    "body_text": "您好周总，\n\n我司 Delta 公司深耕华南市场多年，希望与贵司探讨区域代理合作。\n\n我们拥有：\n- 200+ 企业客户资源\n- 完整的销售与实施团队\n- 行业 know-how（制造、零售）\n\n希望安排 8 月中旬面谈，详谈合作模式与分成比例。\n\n周总\nDelta 公司 CEO",
+    "sent_at": "2026-08-02T14:30:00+08:00",
+    "thread_id": "t-customer-003",
+    "labels": ["work", "customer", "sales"]
+  },
+  {
+    "message_id": "<msg-021@customer.example.com>",
+    "sender": "客户 - 吴女士 <wu.feedback@epsilon-corp.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "产品建议：希望增加暗黑模式",
+    "body_text": "你好，\n\n我是贵司产品的重度用户，几个建议：\n1. 希望增加暗黑模式，长时间使用眼睛很累\n2. 数据导出格式希望能加 Excel 选项（目前只有 CSV）\n3. 移动端希望能加离线缓存\n\n期待你们的更新。\n\n吴女士\nEpsilon 公司 产品经理",
+    "sent_at": "2026-08-03T08:50:00+08:00",
+    "thread_id": "t-customer-004",
+    "labels": ["work", "feedback"]
+  }
+]

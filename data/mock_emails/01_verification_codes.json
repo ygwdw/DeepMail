@@ -1,0 +1,42 @@
+[
+  {
+    "message_id": "<msg-001@verification.example.com>",
+    "sender": "招商银行 <no-reply@cmbchina.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【招商银行】您的验证码：582391",
+    "body_text": "您的验证码为 582391，有效期 5 分钟。请勿将验证码告知他人，如非本人操作请忽略。",
+    "sent_at": "2026-07-28T09:15:00+08:00",
+    "thread_id": "t-verification-001",
+    "labels": []
+  },
+  {
+    "message_id": "<msg-002@verification.example.com>",
+    "sender": "京东 <no-reply@jd.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "京东验证码：739204",
+    "body_text": "您正在进行账号登录操作，验证码为 739204，请于 10 分钟内输入。京东客服不会向您索取此验证码。",
+    "sent_at": "2026-07-29T14:22:00+08:00",
+    "thread_id": "t-verification-002",
+    "labels": []
+  },
+  {
+    "message_id": "<msg-003@verification.example.com>",
+    "sender": "微信团队 <wechat@tencent.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "【微信】您的账号正在进行敏感操作，验证码 491628",
+    "body_text": "您的微信账号正在进行敏感操作，验证码为 491628。10 分钟内有效，请尽快使用。",
+    "sent_at": "2026-07-30T20:48:00+08:00",
+    "thread_id": "t-verification-003",
+    "labels": []
+  },
+  {
+    "message_id": "<msg-004@verification.example.com>",
+    "sender": "DeepMail <noreply@deepmail.local>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "您的邮箱绑定验证码：816437",
+    "body_text": "您正在绑定 DeepMail，验证码为 816437，5 分钟内有效。",
+    "sent_at": "2026-08-01T11:05:00+08:00",
+    "thread_id": "t-verification-004",
+    "labels": []
+  }
+]

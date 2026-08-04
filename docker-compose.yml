@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: deepmail-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: deepmail
+      POSTGRES_PASSWORD: deepmail
+      POSTGRES_DB: deepmail
+    ports:
+      - "5432:5432"
+    volumes:
+      - deepmail_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deepmail -d deepmail"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  deepmail_pgdata:

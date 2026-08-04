@@ -1,0 +1,42 @@
+[
+  {
+    "message_id": "<msg-027@personal.example.com>",
+    "sender": "老朋友 - 大刘 <daliu@personal-mail.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "好久不见，下周有空聚聚？",
+    "body_text": "兄弟，\n\n好久没联系了，最近怎么样？我下周三（8 月 6 日）出差到上海，晚上有空一起吃个饭吗？\n\n好久没见，想当面聊聊。\n\n大刘",
+    "sent_at": "2026-07-31T21:15:00+08:00",
+    "thread_id": "t-personal-001",
+    "labels": ["personal"]
+  },
+  {
+    "message_id": "<msg-028@personal.example.com>",
+    "sender": "妈妈 <mama@family-mail.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "周末回家吃饭吗？你爸想你了",
+    "body_text": "孩子：\n\n这周末回家吃饭吗？你爸说你好久没回来了，他钓了几条大鱼想做给你吃。妈妈也给你包了最爱吃的韭菜鸡蛋饺子。\n\n嫂子或者男朋友/女朋友要来也可以。回个信告诉我。\n\n妈妈",
+    "sent_at": "2026-08-01T19:00:00+08:00",
+    "thread_id": "t-personal-002",
+    "labels": ["personal", "family"]
+  },
+  {
+    "message_id": "<msg-029@personal.example.com>",
+    "sender": "大学同学 - 小赵 <xiaozhao@personal-mail.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "10 月同学聚会报名",
+    "body_text": "老同学：\n\n10 月 1 日 - 3 日国庆假期，班长组织同学聚会，定在浙江莫干山民宿。\n\n已报名 18 人，还有 4 个名额。\n人均预算：1200 元（含住宿和 4 餐）\n\n要报名的话直接转给我就行，截止 8 月 15 日。\n\n小赵",
+    "sent_at": "2026-08-02T12:30:00+08:00",
+    "thread_id": "t-personal-003",
+    "labels": ["personal", "social"]
+  },
+  {
+    "message_id": "<msg-030@personal.example.com>",
+    "sender": "前同事 - Sarah <sarah@personal-mail.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "七夕快乐！",
+    "body_text": "Hi，\n\n七夕快乐！愿你今天被喜欢的人温柔以待。\n\n我下周要去你那个城市出差，如果有空一起喝杯咖啡叙叙旧呀～\n\nSarah",
+    "sent_at": "2026-08-03T07:00:00+08:00",
+    "thread_id": "t-personal-004",
+    "labels": ["personal", "festival"]
+  }
+]

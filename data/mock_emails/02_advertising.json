@@ -1,0 +1,52 @@
+[
+  {
+    "message_id": "<msg-005@marketing.example.com>",
+    "sender": "天猫 <promo@tmall.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "🎉 天猫 88 会员节，全场 5 折起，错过再等一年！",
+    "body_text": "尊敬的用户，88 会员节盛大开启！全场 5 折起，叠加满 300 减 50 优惠券，更有 iPhone、戴森等爆款好物限时抢购。点击查看详情：https://example.com/tmall-88",
+    "sent_at": "2026-07-25T08:00:00+08:00",
+    "thread_id": "t-ad-001",
+    "labels": ["promotion"]
+  },
+  {
+    "message_id": "<msg-006@marketing.example.com>",
+    "sender": "得到 App <newsletter@dedao.cn>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "万维钢·日课上新：AI 时代的个人成长策略",
+    "body_text": "万维钢日课本周上新 5 期，重点解析 AI 时代个人成长的 5 个关键策略。订阅用户可立即收听，前 7 天免费试听。",
+    "sent_at": "2026-07-26T10:30:00+08:00",
+    "thread_id": "t-ad-002",
+    "labels": ["newsletter"]
+  },
+  {
+    "message_id": "<msg-007@marketing.example.com>",
+    "sender": "Nike <newsletter@nike.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "新品发布 | Air Max 2026 限量首发",
+    "body_text": "Air Max 2026 全球限量首发，会员抢先购。立即查看：https://example.com/nike-airmax-2026",
+    "sent_at": "2026-07-27T16:45:00+08:00",
+    "thread_id": "t-ad-003",
+    "labels": ["promotion"]
+  },
+  {
+    "message_id": "<msg-008@marketing.example.com>",
+    "sender": "LinkedIn <notifications@linkedin.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "本周您有 12 位新关注者，3 个职位可能适合您",
+    "body_text": "您本周的 LinkedIn 动态：12 位新关注者，3 个匹配职位，5 条行业动态。立即查看 →",
+    "sent_at": "2026-07-28T07:00:00+08:00",
+    "thread_id": "t-ad-004",
+    "labels": ["social"]
+  },
+  {
+    "message_id": "<msg-009@marketing.example.com>",
+    "sender": "美团 <promo@meituan.com>",
+    "recipients": ["user@deepmail.local"],
+    "subject": "外卖红包天天领，最高 20 元",
+    "body_text": "美团外卖暑期活动，天天领红包，最高 20 元。新用户首单立减 15 元。打开美团 App 立即领取 →",
+    "sent_at": "2026-07-30T12:00:00+08:00",
+    "thread_id": "t-ad-005",
+    "labels": ["promotion"]
+  }
+]

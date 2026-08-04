@@ -1,0 +1,61 @@
+# ====== Python ======
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ====== uv / venv ======
+.venv/
+venv/
+env/
+ENV/
+
+# ====== Node / 前端（第二周期预留） ======
+node_modules/
+dist/
+*.local
+
+# ====== 环境变量与密钥 ======
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ====== IDE ======
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ====== 数据库与数据 ======
+*.db
+*.sqlite
+*.sqlite3
+data/runtime/
+data/uploads/
+logs/
+
+# ====== 日志 ======
+*.log
+logs/
+
+# ====== 临时文件 ======
+tmp/
+temp/
+.tmp/

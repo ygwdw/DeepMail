@@ -48,15 +48,15 @@ class Settings(BaseSettings):
 
     llm_provider: str = "openai_compatible"
     llm_base_url: str = "https://api.deepseek.com"
-    llm_api_key: str = "sk-cd1d908225384f199279642e521b79e7"
+    llm_api_key: str = ""
     llm_chat_model: str = "deepseek-v4-flash"
 
     # --- Embedding / Reranker（Gitee AI 服务）---
     embed_base_url: str = "https://ai.gitee.com/v1"
-    embed_api_key: str = "7U7QJFRWQ972H6PARAURUC1G7HU1DYA9IQL9K21D"
+    embed_api_key: str = ""
     llm_embed_model: str = "Qwen3-Embedding-0.6B"
     rerank_base_url: str = "https://ai.gitee.com/v1"
-    rerank_api_key: str = "7U7QJFRWQ972H6PARAURUC1G7HU1DYA9IQL9K21D"
+    rerank_api_key: str = ""
     llm_rerank_model: str = "Qwen3-Reranker-0.6B"
     llm_embed_dim: int = 1024
 
@@ -68,8 +68,8 @@ class Settings(BaseSettings):
     email_provider: str = "imap"  # mock | imap
     imap_host: str = "imap.163.com"
     imap_port: int = 993
-    imap_user: str = "ygwstudy@163.com"
-    imap_password: str = "CZ5fQ9XmMaVjpx2W"  # 授权码（非登录密码）
+    imap_user: str = ""
+    imap_password: str = ""  # 授权码（非登录密码）
     imap_ssl: bool = True
     imap_folder: str = "INBOX"
     imap_initial_sync_limit: int = 30  # M3: 一次性拉取上限
@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # --- LangSmith 可观测性 ---
-    langsmith_api_key: str = "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"  # 留空 = 关闭（v2-P2：用户在 backend/.env 填）
+    langsmith_api_key: str = ""  # 留空 = 关闭（v2-P2：用户在 backend/.env 填）
     langsmith_tracing: bool = True  # 置 True = 开启 tracing（需配 langsmith_api_key）
     langsmith_project: str = "deepmail"
     langsmith_endpoint: str = ""  # 留空用 langsmith 默认

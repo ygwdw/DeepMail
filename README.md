@@ -177,27 +177,6 @@ deepmail/
 └── pyproject.toml
 ```
 
-## 端到端测试（每个阶段一个）
-
-| 阶段 | 脚本 | 验证 |
-|---|---|---|
-| 1 | `e2e_phase1.py` | AI skill 端到端 |
-| 2 | `e2e_phase2.py` | RAG 上传 + 索引 + 检索 |
-| 3 | `e2e_phase3.py` | 多 Agent 自主调度 |
-| 4 | `e2e_phase4.py` | 4 层记忆 API |
-| 5 | `e2e_phase5.py` | 人格画像自动更新 |
-| 6 | `e2e_phase6.py` | 多轮摘要触发 |
-| 7 | `e2e_phase7.py` | 重点事件看板 |
-
-## 完整文档
-
-- [DEPLOY.md](DEPLOY.md) —— 部署 / 运维
-- [develop_doc/邮箱助手项目设计文档.md](develop_doc/邮箱助手项目设计文档.md) —— 原始需求
-- [develop_doc/技术栈.md](develop_doc/技术栈.md) —— 技术选型
-- [develop_doc/模块架构设计.md](develop_doc/模块架构设计.md) —— 模块设计
-- [develop_doc/记忆系统重新设计.md](develop_doc/记忆系统重新设计.md) —— 6 层记忆
-- [develop_doc/开发进度与需求记录表.md](develop_doc/开发进度与需求记录表.md) —— 进度跟踪
-
 ## 许可证
 
 Internal Project.

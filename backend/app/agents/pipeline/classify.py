@@ -1,11 +1,11 @@
-"""邮件分类 Skill。"""
+"""邮件分类 Agent（PipelineAgent）。"""
 
 from __future__ import annotations
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.schemas import ClassifyInput, ClassifyOutput
-from app.agents.skills.base import Skill
+from app.agents.pipeline.base import PipelineAgent
 
 SYSTEM_PROMPT = """你是 DeepMail 邮件分类助手。
 从给定的 categories 列表中选一个最匹配的 category_name，并给出 confidence ∈ [0, 1]。
@@ -19,7 +19,7 @@ SYSTEM_PROMPT = """你是 DeepMail 邮件分类助手。
 只输出一个分类，不要解释。"""
 
 
-class ClassifySkill(Skill[ClassifyInput, ClassifyOutput]):
+class ClassifyAgent(PipelineAgent[ClassifyInput, ClassifyOutput]):
     name = "classify"
     input_schema = ClassifyInput
     output_schema = ClassifyOutput

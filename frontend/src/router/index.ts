@@ -21,6 +21,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'memory', name: 'memory', component: () => import('@/views/Memory.vue') },
       { path: 'persona', name: 'persona', component: () => import('@/views/Persona.vue') },
       { path: 'knowledge', name: 'knowledge', component: () => import('@/views/Knowledge.vue') },
+      { path: 'todos', name: 'todos', component: () => import('@/views/Todos.vue') },
+      { path: 'digest', name: 'digest', component: () => import('@/views/Digest.vue') },
       { path: 'settings', name: 'settings', component: () => import('@/views/Settings.vue') },
     ],
   },

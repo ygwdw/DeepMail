@@ -49,16 +49,16 @@ def build_memory_blocks(
     query: str,
     persona_block: str = "",
     history_msgs: list | None = None,
+    db: AsyncSession | None = None,
 ) -> dict[str, Any]:
     """组装 context blocks。返回每个 block 的文本和 token 数 + 总计。
 
-    v1 简化：不真正从 L2/L4 数据库查询（mock 时空）。
-    MVP：返回空 blocks，由调用方按需填充。
+    v2-M4.2: 当 db 注入时，_build_l4 会真查 personas；否则用空。
     """
     return {
         "L1_session": _build_l1(history_msgs or []),
         "L2_topic": _build_l2(query),
-        "L4_semantic": _build_l4(user_id),
+        "L4_semantic": _build_l4(user_id, db=db),
         "persona": persona_block,
         "current_time": "",
     }
@@ -80,15 +80,22 @@ def _build_l1(messages: list) -> str:
 def _build_l2(query: str) -> str:
     """L2 话题 → 检索相关 top-3。
 
-    v1 mock：返回空。真实集成调 medium_term.list_topics_by_vector。
+    v2-A1：本函数保留为空（build_memory_blocks / assemble_system_prompt 是死代码，
+    生产不调用）。真实 L2 检索注入在 `chat_service._prepare_chat`：
+    调 `medium_term.search_topics_by_vector` + `topics_to_prompt_block`，
+    把相关历史话题作为 SystemMessage 注入 messages 头部（对齐 persona/L5 模式）。
+    若将来复活 assemble_system_prompt，再在这里接 search_topics_by_vector。
     """
     return ""
 
 
-def _build_l4(user_id: uuid.UUID) -> str:
+def _build_l4(user_id: uuid.UUID, *, db: AsyncSession | None = None) -> str:
     """L4 语义 → 高置信度 top-5。
 
-    v1 mock：返回空。真实集成调 long_term.list_long_term。
+    v2-M4.2: 当 db 注入时，真查 personas（仅 category=persona 自动注入）；
+    entity_relation **不注入**，仅查询工具调用。
+    注意：当前 sync 函数不真正查 DB（避免 build_memory_blocks 在 async 上下文里跑）；
+    调用方（chat_service._prepare_chat）走 `search_personas` + `personas_to_prompt_block`。
     """
     return ""
 

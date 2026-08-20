@@ -1,4 +1,4 @@
-"""邮件摘要 Skill。"""
+"""邮件摘要 Agent（PipelineAgent）。"""
 
 from __future__ import annotations
 
@@ -7,14 +7,14 @@ import re
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.schemas import EmailInput, SummaryOutput
-from app.agents.skills.base import Skill
+from app.agents.pipeline.base import PipelineAgent
 
 SYSTEM_PROMPT = """你是 DeepMail 邮件摘要助手。
 阅读用户给出的邮件，输出 1-3 句话的中文摘要，并列出 3-5 个关键点（每点一行、不超过 20 字）。
 如果邮件是验证码、广告、无意义内容，summary 可以只写一句"验证码邮件"/"广告邮件"等。"""
 
 
-class SummarySkill(Skill[EmailInput, SummaryOutput]):
+class SummaryAgent(PipelineAgent[EmailInput, SummaryOutput]):
     name = "summary"
     input_schema = EmailInput
     output_schema = SummaryOutput
@@ -25,7 +25,7 @@ class SummarySkill(Skill[EmailInput, SummaryOutput]):
 
     def parse_from_markdown(self, text: str) -> SummaryOutput | None:
         """兜底：解析 `**摘要：**` + `**关键点：**` 格式。"""
-        from app.agents.skills.base import _strip_think
+        from app.agents.pipeline.base import _strip_think
 
         cleaned = _strip_think(text)
         # 找 summary 段

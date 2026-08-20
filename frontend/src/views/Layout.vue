@@ -23,6 +23,8 @@ function renderIcon(icon: string) {
 const menuOptions: MenuOption[] = [
   { label: '收件箱', key: '/inbox', icon: renderIcon('📧') },
   { label: '会话', key: '/chat', icon: renderIcon('💬') },
+  { label: '待办', key: '/todos', icon: renderIcon('📋') },
+  { label: '日报', key: '/digest', icon: renderIcon('📊') },
   { label: '记忆', key: '/memory', icon: renderIcon('🧠') },
   { label: '人格', key: '/persona', icon: renderIcon('👤') },
   { label: '知识库', key: '/knowledge', icon: renderIcon('📚') },
@@ -128,6 +130,7 @@ const username = computed(() => auth.user?.username || '...')
 .content {
   padding: 16px;
   height: calc(100vh - 56px);
-  overflow: auto;
+  overflow: hidden;
+  position: relative;
 }
 </style>

@@ -10,6 +10,7 @@ from typing import Any
 
 from langgraph.prebuilt import create_react_agent
 
+from app.agents.tools.category_tools import create_category, list_categories
 from app.agents.tools.draft_tools import draft_reply
 from app.agents.tools.email_tools import (
     classify_email,
@@ -17,6 +18,7 @@ from app.agents.tools.email_tools import (
     list_emails,
     summarize_email,
 )
+from app.agents.tools.label_tools import create_label, list_labels
 from app.agents.tools.rag_tools import search_knowledge
 from app.agents.tools.todo_tools import create_todo, list_todos
 from app.core.logging import get_logger
@@ -27,16 +29,20 @@ _logger = get_logger(__name__)
 EMAIL_AGENT_PROMPT = """你是 DeepMail 的【邮件 agent】，负责处理所有邮件相关任务。
 
 你的工具：
-- list_emails(folder, limit): 列出邮件
+- list_emails(folder, limit): 列出邮件（只能按 folder/sender/日期过滤，**不支持按正文关键字搜索**）
 - get_email(email_id): 获取单封详情
 - summarize_email(email_id): 生成摘要
 - classify_email(email_id): 跑分类
+- list_categories(limit): 列出当前用户所有分类（看哪些已存在）
 
 行动原则：
 - 涉及多封邮件时，先 list_emails 拿到 id，再针对性处理
 - 用户没指定 folder，默认 inbox
 - 返回结果时给出 ID，方便后续 agent 引用
 - 中文回复
+- ⚠️ 如果用户问"找/搜索某主题/某关键字的邮件"，**不能**用 list_emails 实现
+  → 这是 rag agent 的职责（混合检索 向量+BM25 能搜正文）
+  → 你应该返回空 + 提示用户这个问题该走 rag
 """
 
 TODO_AGENT_PROMPT = """你是 DeepMail 的【待办 agent】。
@@ -47,6 +53,8 @@ TODO_AGENT_PROMPT = """你是 DeepMail 的【待办 agent】。
 - list_emails(folder, limit): 顺便查邮件（找需要新建 todo 的邮件）
 
 行动原则：
+- ⚠️ 只有用户**明确要求**记录/创建待办时才 create_todo（如"帮我记一个待办/添加待办/记一下"）
+- 不要把闲聊内容、随口告知的日常安排主动变成待办；意图不明时先询问"是否需要帮你记录"
 - 创建待办时如未指定 due_date，设为 null
 - 中文回复
 """
@@ -73,15 +81,20 @@ RAG_AGENT_PROMPT = """你是 DeepMail 的【知识库 agent】。
 - 中文回复
 """
 
-TIDY_AGENT_PROMPT = """你是 DeepMail 的【整理 agent】，负责批量处理邮件（分类/打标/移垃圾箱）。
+TIDY_AGENT_PROMPT = """你是 DeepMail 的【整理 agent】，负责批量处理邮件（分类/打标/移垃圾箱/建新分类标签）。
 
 你的工具：
 - list_emails(folder, limit): 列出邮件
 - classify_email(email_id): 跑分类
-- search_emails 不存在 —— 用 list_emails 过滤
+- list_categories(limit): 列出已有分类
+- list_labels(limit): 列出已有标签
+- create_category(name, description, is_spam_category): 新建分类（description ≥ 10 字）
+- create_label(name, description, color, label_type): 新建标签（description ≥ 10 字）
 
 行动原则：
 - 批量操作前先 list 确认范围
+- 遇到现有分类/标签不覆盖的邮件主题时，**主动调用 create_category / create_label**（description 必须 ≥ 10 字以帮助 LLM 后续分类判断）
+- 同名已存在的分类/标签会返回 error，不必再次创建
 - 中文回复，列出每个动作的影响
 """
 
@@ -108,7 +121,7 @@ def make_sub_agents(model: Any) -> dict[str, Any]:
         "email": _build_react_agent(
             "email_agent",
             model,
-            [list_emails, get_email, summarize_email, classify_email],
+            [list_emails, get_email, summarize_email, classify_email, list_categories],
             EMAIL_AGENT_PROMPT,
         ),
         "todo": _build_react_agent(
@@ -132,7 +145,15 @@ def make_sub_agents(model: Any) -> dict[str, Any]:
         "tidy": _build_react_agent(
             "tidy_agent",
             model,
-            [list_emails, classify_email, get_email],
+            [
+                list_emails,
+                classify_email,
+                get_email,
+                list_categories,
+                list_labels,
+                create_category,
+                create_label,
+            ],
             TIDY_AGENT_PROMPT,
         ),
     }

@@ -48,7 +48,25 @@ async def require_admin(user: User = Depends(get_current_user)) -> User:
 
 
 def get_email_provider() -> EmailProvider:  # type: ignore[name-defined]
-    """单例 Provider。阶段 0 用 MockProvider。"""
+    """根据配置返回 EmailProvider（mock / imap）。
+
+    v2-M3: settings.email_provider == "imap" 时返回 IMAPEmailProvider。
+    IMAP 凭据缺失则兜底 mock（保证接口可用）。
+    """
+    from app.core.config import get_settings
     from app.services.email_provider.mock_provider import MockEmailProvider
 
+    settings = get_settings()
+    if settings.email_provider == "imap":
+        try:
+            from app.services.email_provider.imap_provider import IMAPEmailProvider
+
+            return IMAPEmailProvider()
+        except Exception:
+            # IMAP 凭据缺失或初始化失败 → 兜底 mock
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "imap_provider_init_fallback_to_mock",
+            )
     return MockEmailProvider()

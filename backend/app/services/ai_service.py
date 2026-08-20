@@ -21,23 +21,23 @@ from app.agents.schemas import (
     TagRecommendOutput,
     TodoExtractOutput,
 )
-from app.agents.skills import (
-    ClassifySkill,
-    DraftSkill,
-    EntityExtractSkill,
-    SpamSkill,
-    SummarySkill,
-    TagRecommendSkill,
-    TodoExtractSkill,
+from app.agents.pipeline import (
+    ClassifyAgent,
+    DraftAgent,
+    EntityExtractAgent,
+    SpamAgent,
+    SummaryAgent,
+    TagRecommendAgent,
+    TodoExtractAgent,
 )
-from app.agents.skills.base import SkillResult
+from app.agents.pipeline.base import PipelineResult
 from app.db.models.email import Email
 from app.db.models.label import Category, Label
 from app.db.models.todo import Todo, TodoPriority, TodoStatus
 from app.services.email_service import EmailService
 from app.services.usage_service import record_usage
 
-# ---------- 单 Skill 入口 ----------
+# ---------- 单 PipelineAgent 入口 ----------
 
 
 async def run_summary(
@@ -45,8 +45,8 @@ async def run_summary(
     db: AsyncSession,
     email: Email,
     user_id: uuid.UUID,
-) -> SkillResult[SummaryOutput]:
-    skill = SummarySkill()
+) -> PipelineResult[SummaryOutput]:
+    skill = SummaryAgent()
     inp = EmailInput(subject=email.subject, body_text=email.body_text)
     result = await skill.run(llm, inp)
     if result.ok:
@@ -69,16 +69,21 @@ async def run_todo_extract(
     db: AsyncSession,
     email: Email,
     user_id: uuid.UUID,
-) -> SkillResult[TodoExtractOutput]:
-    skill = TodoExtractSkill()
+) -> PipelineResult[TodoExtractOutput]:
+    skill = TodoExtractAgent()
     inp = EmailInput(subject=email.subject, body_text=email.body_text)
     result = await skill.run(llm, inp)
     if result.ok:
+        # v2-M4.2: TodoExtractOutput 现在是 wrapper class（items 字段）
+        # 兼容兜底解析（LLM 直接给裸 list 走 _parse_from_text 时仍是 list）
+        items = getattr(result.output, "items", result.output)
+        if not isinstance(items, list):
+            items = []
         # 落库到 todos 表
         existing_stmt = select(Todo).where(Todo.email_id == email.id)
         for t in (await db.execute(existing_stmt)).scalars().all():
             await db.delete(t)
-        for item in result.output:
+        for item in items:
             db.add(
                 Todo(
                     user_id=user_id,
@@ -89,7 +94,7 @@ async def run_todo_extract(
                     priority=TodoPriority(item.priority),
                 )
             )
-        email.todos_extracted = [t.model_dump(mode="json") for t in result.output]
+        email.todos_extracted = [t.model_dump(mode="json") for t in items]
         await db.flush()
     await record_usage(
         db,
@@ -108,20 +113,24 @@ async def run_entity_extract(
     db: AsyncSession,
     email: Email,
     user_id: uuid.UUID,
-) -> SkillResult[EntityExtractOutput]:
+) -> PipelineResult[EntityExtractOutput]:
     from app.db.models.knowledge import Entity, Relation
 
-    skill = EntityExtractSkill()
+    skill = EntityExtractAgent()
     inp = EmailInput(subject=email.subject, body_text=email.body_text)
     result = await skill.run(llm, inp)
     if result.ok:
-        # 阶段 1：实体名 + 类型做严格去重
+        # v2-M4.2: 用 upsert 兼容并发场景（多个 email 同时提取到同名 entity）
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+
         for e in result.output.entities:
-            stmt = select(Entity).where(
-                Entity.user_id == user_id, Entity.name == e.name, Entity.type == e.type
+            stmt = pg_insert(Entity).values(
+                user_id=user_id, name=e.name, type=e.type
             )
-            if (await db.execute(stmt)).scalar_one_or_none() is None:
-                db.add(Entity(user_id=user_id, name=e.name, type=e.type))
+            stmt = stmt.on_conflict_do_nothing(
+                index_elements=["user_id", "name", "type"]
+            )
+            await db.execute(stmt)
         for r in result.output.relations:
             db.add(
                 Relation(
@@ -155,8 +164,8 @@ async def run_classify(
     db: AsyncSession,
     email: Email,
     user_id: uuid.UUID,
-) -> SkillResult[Any]:
-    skill = ClassifySkill()
+) -> PipelineResult[Any]:
+    skill = ClassifyAgent()
     # 加载该用户所有分类
     cat_stmt = select(Category).where(Category.user_id == user_id)
     categories = (await db.execute(cat_stmt)).scalars().all()
@@ -201,8 +210,8 @@ async def run_tag_recommend(
     db: AsyncSession,
     email: Email,
     user_id: uuid.UUID,
-) -> SkillResult[TagRecommendOutput]:
-    skill = TagRecommendSkill()
+) -> PipelineResult[TagRecommendOutput]:
+    skill = TagRecommendAgent()
     label_stmt = select(Label).where(Label.user_id == user_id)
     existing_rows = (await db.execute(label_stmt)).scalars().all()
     existing = [{"name": lb.name, "description": lb.description} for lb in existing_rows]
@@ -231,8 +240,8 @@ async def run_spam(
     db: AsyncSession,
     email: Email,
     user_id: uuid.UUID,
-) -> SkillResult[SpamOutput]:
-    skill = SpamSkill()
+) -> PipelineResult[SpamOutput]:
+    skill = SpamAgent()
     inp = EmailInput(
         subject=email.subject,
         body_text=email.body_text,
@@ -263,8 +272,8 @@ async def run_draft(
     *,
     instruction: str,
     tone: str = "auto",
-) -> SkillResult[DraftOutput]:
-    skill = DraftSkill()
+) -> PipelineResult[DraftOutput]:
+    skill = DraftAgent()
     history_text = await _build_history_text(db, email, user_id)
     # 注入 persona（人格画像）→ 起草风格贴合用户
     from app.services.persona_service import get_or_create_persona, persona_to_prompt_block
@@ -291,6 +300,69 @@ async def run_draft(
         error=result.error,
     )
     return result
+
+
+async def apply_tag_recommend(
+    db: AsyncSession,
+    email: Email,
+    result: "PipelineResult[TagRecommendOutput] | None",
+    *,
+    min_confidence: float = 0.6,
+) -> None:
+    """v2-M12: 把 tag_recommend 结果落库到 email.labels（多选，覆盖旧值）。
+
+    只采用 existing_label_matches（已存在的标签），confidence ≥ min_confidence。
+    recommended_new_labels 不自动建（需要用户确认），避免标签爆炸。
+    """
+    if result is None or not result.ok:
+        return
+    try:
+        matches = result.output.existing_label_matches or []
+        kept = [m.name for m in matches if m.confidence >= min_confidence]
+    except Exception:
+        return
+    email.labels = kept  # 覆盖旧标签（重新打标语义）
+    await db.flush()
+
+
+async def reclassify_emails(
+    llm: BaseChatModel,
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    email_ids: list[uuid.UUID],
+    *,
+    do_tag: bool = True,
+) -> dict:
+    """v2-M12: 批量重新分类/打标。
+
+    对每封邮件：
+    1. run_classify → 更新 email.categories（单选覆盖）+ folder 重算
+    2. 若 do_tag → run_tag_recommend → apply_tag_recommend 落 email.labels（多选覆盖）
+
+    逐封串行（每封 2 次 LLM 调用），避免并发触发限流。
+    """
+    processed = 0
+    failed: list[dict] = []
+    for eid in email_ids:
+        try:
+            email = (
+                await db.execute(select(Email).where(Email.id == eid, Email.user_id == user_id))
+            ).scalar_one_or_none()
+            if email is None:
+                failed.append({"email_id": str(eid), "error": "not found"})
+                continue
+            cls_result = await run_classify(llm, db, email, user_id)
+            if not cls_result.ok:
+                failed.append({"email_id": str(eid), "error": cls_result.error or "classify failed"})
+                continue
+            if do_tag:
+                tag_result = await run_tag_recommend(llm, db, email, user_id)
+                await apply_tag_recommend(db, email, tag_result)
+            processed += 1
+        except Exception as exc:
+            failed.append({"email_id": str(eid), "error": f"{type(exc).__name__}: {exc}"})
+    await db.commit()
+    return {"processed": processed, "failed": failed}
 
 
 # ---------- Process 全量 ----------

@@ -46,13 +46,29 @@ async function loadLongTerm(): Promise<void> {
   }
 }
 
-async function runExtract(): Promise<void> {
+// v2-P1: 手动触发 L2→L3 聚类（真聚类，幂等）
+const clustering = ref(false)
+const lastClusterRunAt = ref<string | null>(null)
+
+async function runCluster(): Promise<void> {
+  clustering.value = true
   try {
-    const r = await memoryApi.extractEvents(7, 3)
-    message.success(`已聚类 ${r.length} 个事件`)
-    await loadEvents()
+    const r = await memoryApi.runCluster(7, 2, 0.85)
+    message.success(`新增 ${r.events_created} 个事件`)
+    await Promise.all([loadEvents(), loadLastClusterRun()])
   } catch (e) {
     message.error(getErrorMessage(e))
+  } finally {
+    clustering.value = false
+  }
+}
+
+async function loadLastClusterRun(): Promise<void> {
+  try {
+    const r = await memoryApi.lastClusterRun()
+    lastClusterRunAt.value = r.last_run_at
+  } catch (e) {
+    // 静默：上次聚类时间获取失败不打扰用户
   }
 }
 
@@ -75,6 +91,7 @@ onMounted(() => {
   loadTopics()
   loadEvents()
   loadLongTerm()
+  loadLastClusterRun()
 })
 </script>
 
@@ -102,9 +119,12 @@ onMounted(() => {
     <NTabPane name="events" tab="L3 事件">
       <NCard>
         <NSpace vertical>
-          <NSpace>
+          <NSpace align="center">
             <NButton @click="loadEvents" :loading="loading.events">刷新</NButton>
-            <NButton type="primary" @click="runExtract">从话题聚类</NButton>
+            <NButton type="primary" @click="runCluster" :loading="clustering">立即聚类</NButton>
+            <span class="muted">
+              上次聚类：{{ lastClusterRunAt ? dayjs(lastClusterRunAt).format('YYYY-MM-DD HH:mm') : '尚未聚类' }}
+            </span>
           </NSpace>
           <NSpin :show="loading.events">
             <NEmpty v-if="events.length === 0" description="还没有 L3 事件" />

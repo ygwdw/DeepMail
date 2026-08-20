@@ -6,7 +6,7 @@ from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
-from app.agents.aggregator import aggregator_node
+from app.agents.aggregator import aggregator_node, chat_node
 from app.agents.state import GraphState
 from app.agents.sub_agents import make_sub_agents
 from app.agents.supervisor import dispatch, supervisor_node
@@ -44,6 +44,11 @@ async def build_graph(user_id: str, session_id: str, *, force_mock: bool = False
         async with agent_context(user_id=user_id, session_id=session_id):
             return await aggregator_node(state, sm)
 
+    async def chat(state):
+        # v2-P2: 空路由 → 直接聊天（纯 LLM 直答，无 agent）
+        async with agent_context(user_id=user_id, session_id=session_id):
+            return await chat_node(state, sm)
+
     def wrap(name, agent):
         async def wrapped(state):
             async with agent_context(user_id=user_id, session_id=session_id):
@@ -58,17 +63,19 @@ async def build_graph(user_id: str, session_id: str, *, force_mock: bool = False
     builder.add_node("supervisor", sup)
     for name, node in wrapped_agents.items():
         builder.add_node(name, node)
+    builder.add_node("chat", chat)  # v2-P2: 空路由直聊节点
     builder.add_node("aggregator", agg)
 
     builder.add_edge(START, "supervisor")
     builder.add_conditional_edges(
         "supervisor",
         dispatch,
-        {name: name for name in wrapped_agents.keys()},
+        {**{name: name for name in wrapped_agents.keys()}, "chat": "chat"},
     )
     for name in wrapped_agents.keys():
         builder.add_edge(name, "aggregator")
     builder.add_edge("aggregator", END)
+    builder.add_edge("chat", END)  # v2-P2: 直聊不经过 aggregator
 
     return builder.compile()
 

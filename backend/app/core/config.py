@@ -41,10 +41,15 @@ class Settings(BaseSettings):
     admin_password: str = "ChangeMe@2026"
 
     # --- LLM 默认配置（用户可在 UI 覆盖）---
+    # llm_provider: str = "openai_compatible"
+    # llm_base_url: str = "https://api.minimaxi.com/v1"
+    # llm_api_key: str = "sk-cp-Gb33ogf3nB4A25rqU1QRyk5qVIfr6MkgWrkXhKic8yzJOvcwCMue1pj_oS6V17nz8i0VjeMpo0Rciq5JmaY_PkI5edD7-ENPx80z21NmdDyPvgI4wuRfBzE"
+    # llm_chat_model: str = "MiniMax-M3"
+
     llm_provider: str = "openai_compatible"
-    llm_base_url: str = "https://api.minimaxi.com/v1"
-    llm_api_key: str = "sk-cp-Gb33ogf3nB4A25rqU1QRyk5qVIfr6MkgWrkXhKic8yzJOvcwCMue1pj_oS6V17nz8i0VjeMpo0Rciq5JmaY_PkI5edD7-ENPx80z21NmdDyPvgI4wuRfBzE"
-    llm_chat_model: str = "MiniMax-M3"
+    llm_base_url: str = "https://api.deepseek.com"
+    llm_api_key: str = "sk-cd1d908225384f199279642e521b79e7"
+    llm_chat_model: str = "deepseek-v4-flash"
 
     # --- Embedding / Reranker（Gitee AI 服务）---
     embed_base_url: str = "https://ai.gitee.com/v1"
@@ -58,11 +63,45 @@ class Settings(BaseSettings):
     # --- Mock 邮件 ---
     mock_emails_dir: str = "./data/mock_emails"
 
+    # --- 真实邮件 Provider（v2-M3: 网易 163/188 IMAP）---
+    # 凭据在 .env 填；其他厂商可后续扩展
+    email_provider: str = "imap"  # mock | imap
+    imap_host: str = "imap.163.com"
+    imap_port: int = 993
+    imap_user: str = "ygwstudy@163.com"
+    imap_password: str = "CZ5fQ9XmMaVjpx2W"  # 授权码（非登录密码）
+    imap_ssl: bool = True
+    imap_folder: str = "INBOX"
+    imap_initial_sync_limit: int = 30  # M3: 一次性拉取上限
+    imap_id_name: str = "deepmail"
+    imap_id_version: str = "0.1.0"
+    imap_id_vendor: str = "personal"
+    imap_id_support_email: str = ""  # 默认 = imap_user
+
+    # --- 真实邮件发送（v2-M12: SMTP 网易，同 IMAP 账户授权码）---
+    smtp_host: str = "smtp.163.com"
+    smtp_port: int = 465
+    smtp_ssl: bool = True
+    smtp_user: str = ""  # 默认 = imap_user
+    smtp_password: str = ""  # 默认 = imap_password（授权码）
+
+    # --- L3 每日自动聚类（v2-P1）---
+    # 聚类是纯余弦相似度计算（零 LLM 调用），可放心每日自动跑
+    cluster_auto_enabled: bool = True  # 启动时是否拉起每日自动聚类后台任务
+    cluster_auto_interval_hours: int = 24  # 自动聚类间隔（小时），启动后 60s 先跑一轮
+
+    # --- L2 检索注入（v2-A1）---
+    # chat 每轮用 query 做向量检索，把相关历史 L2 话题注入 system prompt
+    l2_retrieval_enabled: bool = True  # 是否启用 L2 检索注入（每轮 1 次 embedding，极便宜）
+    l2_top_k: int = 5  # 最多注入几个相关话题
+    l2_min_similarity: float = 0.3  # 相似度阈值（低于此值的 topic 不注入，宁缺毋滥）
+
     # --- 日志 ---
     log_level: str = "INFO"
 
     # --- LangSmith 可观测性 ---
-    langsmith_api_key: str = ""  # 留空 = 关闭
+    langsmith_api_key: str = "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"  # 留空 = 关闭（v2-P2：用户在 backend/.env 填）
+    langsmith_tracing: bool = True  # 置 True = 开启 tracing（需配 langsmith_api_key）
     langsmith_project: str = "deepmail"
     langsmith_endpoint: str = ""  # 留空用 langsmith 默认
 

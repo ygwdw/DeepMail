@@ -1,11 +1,11 @@
-"""实体关系抽取 Skill。"""
+"""实体关系抽取 Agent（PipelineAgent）。"""
 
 from __future__ import annotations
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.schemas import EmailInput, EntityExtractOutput
-from app.agents.skills.base import Skill
+from app.agents.pipeline.base import PipelineAgent
 
 SYSTEM_PROMPT = """你是 DeepMail 实体关系抽取助手。
 从邮件中抽取：
@@ -18,7 +18,7 @@ SYSTEM_PROMPT = """你是 DeepMail 实体关系抽取助手。
 - 如果邮件无明显实体/关系，返回空对象 {"entities": [], "relations": []}。"""
 
 
-class EntityExtractSkill(Skill[EmailInput, EntityExtractOutput]):
+class EntityExtractAgent(PipelineAgent[EmailInput, EntityExtractOutput]):
     name = "entity_extract"
     input_schema = EmailInput
     output_schema = EntityExtractOutput

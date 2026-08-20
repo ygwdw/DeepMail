@@ -27,6 +27,19 @@ class EmailRead(ORMModel):
     labels: list[str]
     categories: list[str]
     summary: str | None
+    # v2-M9 / bug fix: 详情页要展示待办；之前 schema 缺这个字段导致详情页 todos 显示空
+    todos_extracted: list[dict] = []
+    entities_extracted: list[dict] = []
+
+
+def make_body_preview(body: str | None, max_chars: int = 150) -> str:
+    """生成列表预览文本：去多余空白 + 截断到 max_chars。"""
+    if not body:
+        return ""
+    text = " ".join(body.split())  # 合并空白 + 换行
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1] + "…"
 
 
 class EmailListItem(ORMModel):
@@ -46,3 +59,7 @@ class EmailListItem(ORMModel):
     labels: list[str]
     categories: list[str]
     summary: str | None
+    # v2-M6：列表 hover 显示待办；带 label/category 必须能看到
+    todos_extracted: list[dict] = []
+    # v2-M6 增量：邮件正文预览（前 150 字，用于列表卡片）
+    body_preview: str = ""

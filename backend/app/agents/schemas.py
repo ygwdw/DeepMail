@@ -1,4 +1,4 @@
-"""所有 Skill 的 Pydantic 输出 schema 与共用类型。
+"""所有 PipelineAgent 的 Pydantic 输出 schema 与共用类型。
 
 ⚠️ 重要：每个字段必须有 `description`！
 Pydantic 的 Field description 会原样注入到 LLM prompt（langchain with_structured_output
@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 
 # ---------- 1. 摘要 ----------
 
@@ -46,7 +46,16 @@ class TodoItem(BaseModel):
     )
 
 
-TodoExtractOutput = list[TodoItem]
+class TodoExtractOutput(BaseModel):
+    """v2-M4.2: 用 wrapper class 替代裸 list[TodoItem]。
+    - BaseModel.with_structured_output 在 OpenAI 协议下能识别（不识 list 顶层）
+    - LLM 直接输出 list 时，_parse_from_text 兜底把 list 包成 {items: [...]}
+    - .items 字段访问友好（不像 RootModel 要 .root）
+    """
+    items: list[TodoItem] = Field(
+        default_factory=list,
+        description="抽取的待办列表",
+    )
 
 
 # ---------- 3. 实体关系抽取 ----------

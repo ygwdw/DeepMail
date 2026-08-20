@@ -33,6 +33,8 @@ export interface EmailListItem {
   labels: string[]
   categories: string[]
   summary: string | null
+  todos_extracted: Array<{ content: string; due_date?: string | null; priority?: string }>
+  body_preview: string
 }
 
 export interface EmailRead extends EmailListItem {
@@ -40,6 +42,7 @@ export interface EmailRead extends EmailListItem {
   recipients: string[]
   cc: string[]
   body_text: string
+  entities_extracted: Array<{ name: string; type?: string }>
 }
 
 export interface Page<T> {
@@ -47,6 +50,41 @@ export interface Page<T> {
   total: number
   limit: number
   offset: number
+}
+
+export interface CategoryRead {
+  id: string
+  name: string
+  description: string
+  rules_json: Record<string, unknown>
+  is_system: boolean
+  is_spam_category: boolean
+  count: number
+}
+
+export interface LabelRead {
+  id: string
+  name: string
+  description: string
+  color: string
+  count: number
+}
+
+export interface TodoRead {
+  id: string
+  email_id: string | null
+  content: string
+  due_date: string | null
+  priority: 'low' | 'medium' | 'high'
+  status: 'pending' | 'done' | 'cancelled'
+  created_at: string
+}
+
+// 邮件元数据里的 todo item（schema TodoItem 的 TS 镜像）
+export interface EmailTodoItem {
+  content: string
+  due_date?: string | null
+  priority?: 'low' | 'medium' | 'high'
 }
 
 export interface ChatSession {
@@ -113,6 +151,15 @@ export interface EventDetailRead extends EventRead {
   timeline: TimelineRead[]
 }
 
+export interface ClusterRunResult {
+  events_created: number
+  topics_used: number
+}
+
+export interface ClusterLastRun {
+  last_run_at: string | null
+}
+
 export interface LongTermRead {
   id: string
   key: string
@@ -146,4 +193,27 @@ export interface KnowledgeSearchResponse {
 export interface KnowledgeStats {
   total_chunks: number
   partitions: { partition: string; count: number }[]
+}
+
+// v2-M4.4: 上传结果扩展（zip 上传返回 files_indexed）
+export interface KnowledgeUploadResponse {
+  partition: string
+  filename: string
+  chunks_indexed: number
+  files_indexed?: string[]  // zip 上传时包含
+  kind?: 'file' | 'zip'
+}
+
+// v2-M4.4: L5 挂载检索 SSE 事件
+export interface L5Source {
+  partition: string
+  source: string
+  filename: string
+  score: number
+  chunk_id: string
+}
+
+export interface L5SourcesEvent {
+  type: 'l5_sources'
+  sources: L5Source[]
 }

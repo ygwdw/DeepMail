@@ -18,7 +18,7 @@ import asyncio
 
 import pytest
 from app.agents.schemas import DraftInput, EmailInput
-from app.agents.skills import DraftSkill, SpamSkill, SummarySkill
+from app.agents.pipeline import DraftAgent, SpamAgent, SummaryAgent
 from app.core.config import get_settings
 from app.llm.factory import get_chat_model, is_mock_mode
 
@@ -59,7 +59,7 @@ async def test_summary_with_real_llm():
     s = get_settings()
     print(f"\n  [config] provider={s.llm_provider} model={s.llm_chat_model} base={s.llm_base_url}")
 
-    skill = SummarySkill()
+    skill = SummaryAgent()
     inp = EmailInput(
         subject="关于 V3.0 产品评审会议",
         body_text=(
@@ -112,7 +112,7 @@ Q4重点项目规划与资源协调（15:00–16:00）
 async def test_spam_with_real_llm():
     """真实 LLM 跑一次垃圾邮件判定。"""
     llm = await _build_chat_model()
-    skill = SpamSkill()
+    skill = SpamAgent()
     inp = EmailInput(
         subject="正常业务邮件",
         body_text="请查收合同",
@@ -140,7 +140,7 @@ async def test_spam_with_real_llm():
 async def test_spam_with_real_llm_promotion():
     """真实 LLM 识别促销邮件。"""
     llm = await _build_chat_model()
-    skill = SpamSkill()
+    skill = SpamAgent()
     inp = EmailInput(
         subject="🎉 天猫 88 会员节，全场 5 折起",
         body_text="全站 5 折起，叠加满 300 减 50 优惠券，更有 iPhone 限时抢购！",
@@ -165,7 +165,7 @@ async def test_spam_with_real_llm_promotion():
 async def test_draft_chinese_with_real_llm():
     """中文邮件应得到中文回复。"""
     llm = await _build_chat_model()
-    skill = DraftSkill()
+    skill = DraftAgent()
     inp = DraftInput(
         instruction="礼貌同意并确认时间",
         tone="formal",
@@ -194,7 +194,7 @@ async def test_draft_chinese_with_real_llm():
 async def test_draft_english_with_real_llm():
     """英文邮件应得到英文回复。"""
     llm = await _build_chat_model()
-    skill = DraftSkill()
+    skill = DraftAgent()
     inp = DraftInput(
         instruction="Acknowledge and schedule a follow-up next week",
         tone="formal",
@@ -228,7 +228,7 @@ async def main():
     print(f"[run] {info}")
 
     llm = await _build_chat_model()
-    skill = SummarySkill()
+    skill = SummaryAgent()
     result = await skill.run(llm, EmailInput(subject="hello", body_text="world"))
     print(f"summary.ok = {result.ok}")
     if result.ok:

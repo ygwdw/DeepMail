@@ -1,4 +1,4 @@
-"""垃圾邮件过滤 Skill。"""
+"""垃圾邮件过滤 Agent（PipelineAgent）。"""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import re
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.schemas import EmailInput, SpamOutput
-from app.agents.skills.base import Skill
+from app.agents.pipeline.base import PipelineAgent
 
 SYSTEM_PROMPT = """你是 DeepMail 垃圾邮件检测助手。
 评估邮件的 spam_score ∈ [0, 1]，并给出 is_spam（spam_score ≥ 0.8 视为垃圾）+ reasons（≤3 条短理由）。
@@ -22,7 +22,7 @@ SYSTEM_PROMPT = """你是 DeepMail 垃圾邮件检测助手。
 纯业务沟通 spam_score 应较低（≤ 0.2）。"""
 
 
-class SpamSkill(Skill[EmailInput, SpamOutput]):
+class SpamAgent(PipelineAgent[EmailInput, SpamOutput]):
     name = "spam"
     input_schema = EmailInput
     output_schema = SpamOutput
@@ -34,7 +34,7 @@ class SpamSkill(Skill[EmailInput, SpamOutput]):
 
     def parse_from_markdown(self, text: str) -> SpamOutput | None:
         """兜底：从 markdown 提取 score / 判定 / 理由。"""
-        from app.agents.skills.base import _strip_think
+        from app.agents.pipeline.base import _strip_think
 
         cleaned = _strip_think(text)
         # 抓 score

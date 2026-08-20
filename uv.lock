@@ -563,6 +563,7 @@ dependencies = [
     { name = "bcrypt" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "imap-tools" },
     { name = "langchain" },
     { name = "langchain-community" },
     { name = "langchain-openai" },
@@ -596,6 +597,7 @@ requires-dist = [
     { name = "bcrypt", specifier = ">=4.2.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.27.0" },
+    { name = "imap-tools", specifier = ">=1.14.0" },
     { name = "langchain", specifier = ">=0.3.0" },
     { name = "langchain-community", specifier = ">=0.3.0" },
     { name = "langchain-openai", specifier = ">=0.2.0" },
@@ -1078,6 +1080,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cd/63/9496c57188a2ee585e0f1db071d75089a11e98aa86eb99d9d7618fc1edce/idna-3.18.tar.gz", hash = "sha256:ffb385a7e039654cef1ab9ef32c6fafe283c0c0467bba1d9029738ce4a14a848", size = 196711, upload-time = "2026-06-02T14:34:07.794Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/5e/d4e9f1a599fb8e573b7b87160658329fbf28d19eac2718f51fc3def3aa5a/idna-3.18-py3-none-any.whl", hash = "sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2", size = 65455, upload-time = "2026-06-02T14:34:06.319Z" },
+]
+
+[[package]]
+name = "imap-tools"
+version = "1.15.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/4e/acf9a7d59932548bc749fe0f5ae852e6da00b640303ed72786f697944b69/imap_tools-1.15.0.tar.gz", hash = "sha256:a90f948549ab000d96caf17c90e63b114f8788ba4a0d3f9274a96c0e108c3805", size = 48497, upload-time = "2026-08-06T10:25:26.567Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/eb/a4ad6ec962af2806c3484adb1869c24a04d8ef8c2034f2dd2b0f48459b0a/imap_tools-1.15.0-py3-none-any.whl", hash = "sha256:7bb0003c8bf124b80968c7bef786e4577d8365e9afb6551dc15b13161b688bdc", size = 36512, upload-time = "2026-08-06T10:25:24.377Z" },
 ]
 
 [[package]]

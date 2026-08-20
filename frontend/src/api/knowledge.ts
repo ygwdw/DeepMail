@@ -1,5 +1,10 @@
 import { api } from './client'
-import type { KnowledgePartition, KnowledgeSearchResponse, KnowledgeStats } from '@/types/api'
+import type {
+  KnowledgePartition,
+  KnowledgeSearchResponse,
+  KnowledgeStats,
+  KnowledgeUploadResponse,
+} from '@/types/api'
 
 export const knowledgeApi = {
   async listPartitions(): Promise<KnowledgePartition[]> {
@@ -9,11 +14,19 @@ export const knowledgeApi = {
   async deletePartition(name: string): Promise<void> {
     await api.delete(`/knowledge/partitions/${name}`)
   },
-  async upload(partition: string, file: File): Promise<{ partition: string; filename: string; chunks_indexed: number }> {
+  // v2-M4.4: 重命名分区
+  async renamePartition(oldName: string, newName: string): Promise<{ renamed_chunks: number; old_name: string; new_name: string }> {
+    const { data } = await api.post('/knowledge/partitions/rename', {
+      old_name: oldName,
+      new_name: newName,
+    })
+    return data
+  },
+  async upload(partition: string, file: File): Promise<KnowledgeUploadResponse> {
     const form = new FormData()
     form.append('partition', partition)
     form.append('file', file)
-    const { data } = await api.post('/knowledge/upload', form, {
+    const { data } = await api.post<KnowledgeUploadResponse>('/knowledge/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     return data

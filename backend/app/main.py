@@ -7,6 +7,7 @@ v2-M5：可选托管前端构建产物（`frontend/dist`）。
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -31,9 +32,29 @@ async def lifespan(_app: FastAPI):
     configure_langsmith()
     _logger.info("DeepMail_starting", version=__version__, env=_settings.app_env)
     get_engine()
+
+    # v2-P1: L3 每日自动聚类（纯余弦，零 LLM 成本；可配置关闭）
+    _cluster_task: asyncio.Task | None = None
+    if _settings.cluster_auto_enabled:
+        from app.db.session import get_sessionmaker
+        from app.memory.cluster_scheduler import daily_cluster_loop
+
+        _cluster_task = asyncio.create_task(
+            daily_cluster_loop(
+                get_sessionmaker(),
+                _settings.cluster_auto_interval_hours,
+            )
+        )
+
     try:
         yield
     finally:
+        if _cluster_task is not None:
+            _cluster_task.cancel()
+            try:
+                await _cluster_task
+            except asyncio.CancelledError:
+                pass
         await dispose_engine()
         _logger.info("DeepMail_shutdown")
 

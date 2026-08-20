@@ -53,16 +53,23 @@ def anyio_backend() -> str:
 
 @pytest.fixture(autouse=True)
 async def _truncate_tables_and_dispose():
-    """每个测试前清空业务表 + 测试后 dispose engine。"""
+    """每个测试前清空业务衍生表 + 测试后 dispose engine。
+
+    v2-M3: 不再 truncate `emails` 和 `users`（保留 mock 邮件 + admin 用户），
+    避免每次测试重置数据 + 防止被误清真实 IMAP 同步的邮件。
+    """
     sm = get_sessionmaker()
     async with sm() as session:
-        # 仅清业务表，不动 alembic_version
+        # 仅清业务衍生表；emails / users / categories / labels 保留
+        # （categories/labels 是用户配置数据，只在创建用户时 seed 一次，
+        #   若清掉则现有用户分类永久丢失 —— 见 v2 分类为空 bug 修复）
         await session.execute(
             text(
-                "TRUNCATE TABLE chat_messages, chat_sessions, todos, emails, "
-                "labels, categories, personas, knowledge_chunks, entities, "
+                "TRUNCATE TABLE chat_messages, chat_sessions, todos, "
+                "personas, knowledge_chunks, entities, "
                 "relations, memory_medium_topics, memory_long_term, "
-                "llm_configs, users RESTART IDENTITY CASCADE"
+                "memory_events, memory_event_timeline, "
+                "llm_configs, usage_logs RESTART IDENTITY CASCADE"
             )
         )
         await session.commit()

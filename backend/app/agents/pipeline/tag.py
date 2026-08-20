@@ -1,11 +1,11 @@
-"""打标推荐 Skill（推荐 + 用户确认，不直接写库）。"""
+"""打标推荐 Agent（PipelineAgent：推荐 + 用户确认，不直接写库）。"""
 
 from __future__ import annotations
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.schemas import TagInput, TagRecommendOutput
-from app.agents.skills.base import Skill
+from app.agents.pipeline.base import PipelineAgent
 
 SYSTEM_PROMPT = """你是 DeepMail 邮件打标助手。
 对当前邮件推荐标签（不直接落库，前端展示后用户确认才写入）。
@@ -20,7 +20,7 @@ SYSTEM_PROMPT = """你是 DeepMail 邮件打标助手。
 - 建议新标签最多 3 个；只在邮件主题或话题明显超出已有标签范围时建议。"""
 
 
-class TagRecommendSkill(Skill[TagInput, TagRecommendOutput]):
+class TagRecommendAgent(PipelineAgent[TagInput, TagRecommendOutput]):
     name = "tag_recommend"
     input_schema = TagInput
     output_schema = TagRecommendOutput

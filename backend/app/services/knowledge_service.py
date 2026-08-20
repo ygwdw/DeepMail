@@ -46,6 +46,40 @@ async def delete_partition(db: AsyncSession, user_id: uuid.UUID, partition: str)
     return await indexer.delete_partition(user_id, partition)
 
 
+async def rename_partition(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    old_name: str,
+    new_name: str,
+) -> int:
+    """v2-M4.4: 重命名分区（同步改 knowledge_chunks.partition 字段）。
+
+    inbox 不允许重命名；new_name 不允许与已有分区重名（除 old_name 自身）。
+    """
+    if old_name == "inbox":
+        raise ValueError("inbox 分区为系统分区，不可重命名")
+    if not new_name.strip():
+        raise ValueError("new_name 不能为空")
+    # 校验新名是否已被其他分区占用
+    existing = await list_partitions(db, user_id)
+    names = {p["partition"] for p in existing}
+    if new_name in names and new_name != old_name:
+        raise ValueError(f"分区 {new_name} 已存在")
+    # UPDATE knowledge_chunks SET partition = new_name WHERE user_id = :u AND partition = :old
+    from sqlalchemy import update
+
+    from app.db.models.knowledge import KnowledgeChunk
+
+    stmt = (
+        update(KnowledgeChunk)
+        .where(KnowledgeChunk.user_id == user_id, KnowledgeChunk.partition == old_name)
+        .values(partition=new_name)
+    )
+    result = await db.execute(stmt)
+    await db.commit()
+    return result.rowcount or 0
+
+
 # ---------- 索引：邮件 ----------
 
 
@@ -161,18 +195,40 @@ async def search(
     *,
     query: str,
     partition: str | None = None,
+    partitions: list[str] | None = None,  # v2-M4.3: 多分区检索
     top_k: int = 5,
     use_rerank: bool = True,
 ) -> list[dict]:
-    """混合检索。"""
+    """混合检索。
+
+    v2-M4.3: partitions 参数允许同时检索多个分区（挂载场景）。
+    - partition 单分区（向后兼容）
+    - partitions 多分区（按顺序串行查询后合并 top_k）
+    """
     retriever = make_retriever(db)
-    hits = await retriever.retrieve(
-        user_id=user_id,
-        query=query,
-        partition=partition,
-        top_k=top_k,
-        use_rerank=use_rerank,
-    )
+    if partitions:
+        # 多分区：每个分区查 top_k，合并后取 top_k
+        all_hits = []
+        for p in partitions:
+            hits = await retriever.retrieve(
+                user_id=user_id,
+                query=query,
+                partition=p,
+                top_k=top_k,
+                use_rerank=use_rerank,
+            )
+            all_hits.extend(hits)
+        # 按 score 降序，取 top_k
+        all_hits.sort(key=lambda h: h.score, reverse=True)
+        hits = all_hits[:top_k]
+    else:
+        hits = await retriever.retrieve(
+            user_id=user_id,
+            query=query,
+            partition=partition,
+            top_k=top_k,
+            use_rerank=use_rerank,
+        )
     return [
         {
             "chunk_id": str(h.chunk_id),

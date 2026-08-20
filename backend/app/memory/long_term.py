@@ -1,6 +1,10 @@
-"""L4 语义记忆：长期事实 / 用户画像 / 程序偏好。
+"""L4 语义记忆：长期事实 / 用户画像 / 实体关系。
 
-存储：key-value JSONB（v1 混在一起；category 字段保留扩展）。
+存储：key-value JSONB，按 category 字段区分：
+- "persona": 用户画像（姓名、职业、偏好），自动注入主 agent + draft agent
+- "entity_relation": 实体关系（如"张小龙是朋友"、"李红是 A 公司 HR"），只可查询不注入
+- "misc": 其他事实，保留扩展
+
 衰减：decay_score = importance * exp(-λ * days_since_update)
 查询时过滤 decay_score > 阈值。
 """
@@ -25,6 +29,13 @@ DEFAULT_DECAY_LAMBDA = 0.01
 
 # 查询时过滤的最小 decay_score
 DEFAULT_MIN_DECAY = 0.1
+
+# v2-M4.2: L4 category 常量
+CATEGORY_PERSONA = "persona"
+CATEGORY_ENTITY_RELATION = "entity_relation"
+CATEGORY_MISC = "misc"
+
+VALID_CATEGORIES = {CATEGORY_PERSONA, CATEGORY_ENTITY_RELATION, CATEGORY_MISC}
 
 
 def compute_decay_score(
@@ -53,9 +64,13 @@ async def upsert_long_term(
     value: dict[str, Any],
     *,
     importance: float = 0.5,
-    category: str = "misc",
+    category: str = CATEGORY_MISC,
 ) -> MemoryLongTerm:
     """upsert：同 user + key 已存在则更新 value / importance / category。"""
+    if category not in VALID_CATEGORIES:
+        _logger.warning("invalid_category", category=category, fallback=CATEGORY_MISC)
+        category = CATEGORY_MISC
+
     stmt = select(MemoryLongTerm).where(
         MemoryLongTerm.user_id == user_id, MemoryLongTerm.key == key
     )
@@ -114,6 +129,69 @@ async def list_long_term(
     return rows
 
 
+# v2-M4.2: L4 分类查询入口
+
+async def search_personas(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    min_decay: float = DEFAULT_MIN_DECAY,
+    limit: int = 20,
+) -> list[MemoryLongTerm]:
+    """v2-M4.2: 查询用户画像（category=persona），供主 agent / draft agent 自动注入。"""
+    return await list_long_term(
+        db,
+        user_id,
+        category=CATEGORY_PERSONA,
+        min_decay=min_decay,
+        limit=limit,
+    )
+
+
+async def search_relations(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    subject: str | None = None,
+    predicate: str | None = None,
+    object: str | None = None,
+    min_decay: float = DEFAULT_MIN_DECAY,
+    limit: int = 50,
+) -> list[MemoryLongTerm]:
+    """v2-M4.2: 查询实体关系（category=entity_relation），按 key=value 元数据过滤。
+
+    注意：实体关系存于 key='person_relation_<subject>' 字段，value 含 predicate/object 元数据。
+    """
+    rows = await list_long_term(
+        db,
+        user_id,
+        category=CATEGORY_ENTITY_RELATION,
+        min_decay=min_decay,
+        limit=limit,
+    )
+    out: list[MemoryLongTerm] = []
+    for r in rows:
+        if subject is not None and r.value.get("subject") != subject:
+            continue
+        if predicate is not None and r.value.get("predicate") != predicate:
+            continue
+        if object is not None and r.value.get("object") != object:
+            continue
+        out.append(r)
+    return out
+
+
+def personas_to_prompt_block(rows: list[MemoryLongTerm]) -> str:
+    """v2-M4.2: 把用户画像列表拼成可注入 system prompt 的 block。"""
+    if not rows:
+        return ""
+    lines = ["## 用户画像（自动注入；M4.2 新增）"]
+    for r in rows:
+        text = r.value.get("text") if isinstance(r.value, dict) else str(r.value)
+        lines.append(f"- {r.key}: {text}（重要性 {r.importance:.2f}）")
+    return "\n".join(lines)
+
+
 async def delete_long_term(db: AsyncSession, user_id: uuid.UUID, key: str) -> bool:
     stmt = select(MemoryLongTerm).where(
         MemoryLongTerm.user_id == user_id, MemoryLongTerm.key == key
@@ -169,9 +247,12 @@ async def extract_long_term_from_conversation(
     user_msg: str,
     ai_msg: str,
 ) -> int:
-    """用 LLM 提炼用户偏好/事实，写入 memory_long_term。
+    """用 LLM 提炼用户偏好/事实/实体关系，写入 memory_long_term。
 
-    MVP：mock 模式或 LLM 失败时不写入。
+    v2-M4.2: 输出按 category 分类
+    - persona: 用户画像（姓名/职业/偏好）
+    - entity_relation: 实体关系（人-公司-职位 等三元组）
+    - misc: 其他事实
     """
     import json as _json
     import re
@@ -182,19 +263,24 @@ async def extract_long_term_from_conversation(
     if is_mock_mode():
         return 0
 
-    system_prompt = """你是用户偏好与事实提炼助手。从一段对话中抽取值得长期记住的用户偏好或事实。
+    system_prompt = """你是用户偏好与事实提炼助手。从一段对话中抽取值得长期记住的内容。
+
+输出 3 类（按 category 字段区分）：
+1. persona（用户画像）：用户自身的事实（姓名、职业、年龄、偏好、习惯）
+   例：{"key":"user_name","value":{"text":"陈经理"},"importance":0.9,"category":"persona"}
+2. entity_relation（实体关系）：用户提到的实体间关系（人物-公司-职位 等）
+   例：{"key":"rel_zhang_xiaolong","value":{"subject":"张小龙","predicate":"是朋友","object":"我"},"importance":0.6,"category":"entity_relation"}
+3. misc（其他事实）：不重要但有用的事实
 
 规则：
-- 只抽取：用户明确表达的偏好（如："我习惯..."、"我不喜欢..."）、事实（如："我是XX"、"我在YY公司"）
+- 只抽取：用户明确表达的内容；每条 ≤ 30 字
 - 不抽取：临时性内容（"今天有空吗"）
-- 每条 ≤ 30 字
+- 返回严格 JSON 数组（不加任何说明文字）
+[{"key":"...","value":{...},"importance":0.5,"category":"persona|entity_relation|misc"}, ...]"""
 
-返回严格 JSON 数组（不加说明文字）：
-[{"key": "user_role", "value": "产品经理", "importance": 0.7, "category": "profile"}, ...]"""
+    user_prompt = f"""用户：{user_msg[:500]}
 
-    user_prompt = f"""用户：{user_msg[:300]}
-
-助手：{ai_msg[:300]}
+助手：{ai_msg[:500]}
 
 请立即输出 JSON 数组："""
 
@@ -225,14 +311,58 @@ async def extract_long_term_from_conversation(
             continue
         if isinstance(value, str):
             value = {"text": value}
+        category = it.get("category", CATEGORY_MISC)
         await upsert_long_term(
             db,
             user_id,
             key=key,
             value=value,
             importance=float(it.get("importance", 0.5)),
-            category=it.get("category", "misc"),
+            category=category,
         )
         count += 1
     _logger.info("long_term_extracted", user=str(user_id), count=count)
     return count
+
+
+# v2-M4.2: 写入实体关系的便捷函数（供外部直接调用，例如工具/前端 API）
+
+async def upsert_entity_relation(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    subject: str,
+    predicate: str,
+    object: str,
+    importance: float = 0.6,
+) -> MemoryLongTerm:
+    """v2-M4.2: 写入或更新一条实体关系（key 自动生成）。"""
+    key = f"rel_{subject}_{predicate}_{object}"
+    value = {"subject": subject, "predicate": predicate, "object": object}
+    return await upsert_long_term(
+        db,
+        user_id,
+        key=key,
+        value=value,
+        importance=importance,
+        category=CATEGORY_ENTITY_RELATION,
+    )
+
+
+async def upsert_persona(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    key: str,
+    text: str,
+    *,
+    importance: float = 0.7,
+) -> MemoryLongTerm:
+    """v2-M4.2: 写入或更新一条用户画像（key 必填，text 是画像描述）。"""
+    return await upsert_long_term(
+        db,
+        user_id,
+        key=key,
+        value={"text": text},
+        importance=importance,
+        category=CATEGORY_PERSONA,
+    )

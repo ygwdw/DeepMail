@@ -1,4 +1,4 @@
-"""7 个 Skill 的单测（用 Mock LLM）。"""
+"""7 个 PipelineAgent 的单测（用 Mock LLM）。"""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ from app.agents.schemas import (
     EmailInput,
     TagInput,
 )
-from app.agents.skills import (
-    ClassifySkill,
-    DraftSkill,
-    EntityExtractSkill,
-    SpamSkill,
-    SummarySkill,
-    TagRecommendSkill,
-    TodoExtractSkill,
+from app.agents.pipeline import (
+    ClassifyAgent,
+    DraftAgent,
+    EntityExtractAgent,
+    SpamAgent,
+    SummaryAgent,
+    TagRecommendAgent,
+    TodoExtractAgent,
 )
 from app.llm.mock import MockLLM, register_default_responses
 
@@ -32,7 +32,7 @@ def mock_llm() -> MockLLM:
 
 
 async def test_summary_skill(mock_llm: MockLLM) -> None:
-    skill = SummarySkill()
+    skill = SummaryAgent()
     inp = EmailInput(
         subject="产品建议",
         body_text="希望增加暗黑模式、Excel 导出、离线缓存",
@@ -47,15 +47,17 @@ async def test_summary_skill(mock_llm: MockLLM) -> None:
 
 
 async def test_todo_extract_skill(mock_llm: MockLLM) -> None:
-    skill = TodoExtractSkill()
+    skill = TodoExtractAgent()
     inp = EmailInput(
         subject="产品建议",
         body_text="希望增加暗黑模式、Excel 导出、离线缓存",
     )
     result = await skill.run(mock_llm, inp)
     assert result.ok, result.error
-    assert len(result.output) >= 1
-    for t in result.output:
+    # v2-M4.2: TodoExtractOutput 是 wrapper class（items 字段）
+    items = result.output.items
+    assert len(items) >= 1
+    for t in items:
         assert t.content
         assert t.priority in ("low", "medium", "high")
 
@@ -64,7 +66,7 @@ async def test_todo_extract_skill(mock_llm: MockLLM) -> None:
 
 
 async def test_entity_extract_skill(mock_llm: MockLLM) -> None:
-    skill = EntityExtractSkill()
+    skill = EntityExtractAgent()
     inp = EmailInput(
         subject="产品建议",
         body_text="我是吴女士，在 Epsilon 公司，希望增加 Excel 导出",
@@ -81,7 +83,7 @@ async def test_entity_extract_skill(mock_llm: MockLLM) -> None:
 
 
 async def test_classify_skill(mock_llm: MockLLM) -> None:
-    skill = ClassifySkill()
+    skill = ClassifyAgent()
     inp = ClassifyInput(
         subject="产品建议",
         body_text="希望增加暗黑模式",
@@ -111,7 +113,7 @@ async def test_classify_skill(mock_llm: MockLLM) -> None:
 
 def test_classify_skill_prompt_includes_description() -> None:
     """classify skill 的 prompt 必须包含 description。"""
-    skill = ClassifySkill()
+    skill = ClassifyAgent()
     from app.agents.schemas import ClassifyInput
 
     inp = ClassifyInput(
@@ -133,7 +135,7 @@ def test_classify_skill_prompt_includes_description() -> None:
 
 
 async def test_tag_recommend_skill(mock_llm: MockLLM) -> None:
-    skill = TagRecommendSkill()
+    skill = TagRecommendAgent()
     inp = TagInput(
         subject="产品建议",
         body_text="希望增加暗黑模式",
@@ -150,7 +152,7 @@ async def test_tag_recommend_skill(mock_llm: MockLLM) -> None:
 
 def test_tag_skill_prompt_includes_label_description() -> None:
     """tag skill 的 prompt 必须包含现有 label 的 description。"""
-    skill = TagRecommendSkill()
+    skill = TagRecommendAgent()
     from app.agents.schemas import TagInput
 
     inp = TagInput(
@@ -172,7 +174,7 @@ def test_tag_skill_prompt_includes_label_description() -> None:
 
 
 async def test_spam_skill(mock_llm: MockLLM) -> None:
-    skill = SpamSkill()
+    skill = SpamAgent()
     inp = EmailInput(
         subject="正常业务邮件",
         body_text="请查收合同",
@@ -188,7 +190,7 @@ async def test_spam_skill(mock_llm: MockLLM) -> None:
 
 
 async def test_draft_skill(mock_llm: MockLLM) -> None:
-    skill = DraftSkill()
+    skill = DraftAgent()
     inp = DraftInput(
         instruction="礼貌拒绝并提议下周再约",
         tone="formal",
@@ -214,7 +216,7 @@ async def test_draft_skill_english_input(mock_llm: MockLLM) -> None:
             "confidence": 0.88,
         },
     )
-    skill = DraftSkill()
+    skill = DraftAgent()
     inp = DraftInput(
         instruction="Acknowledge and schedule a follow-up",
         tone="formal",
@@ -231,7 +233,7 @@ async def test_draft_skill_english_input(mock_llm: MockLLM) -> None:
 
 def test_draft_skill_prompt_includes_language_instruction() -> None:
     """draft skill 的 system prompt 必须明确要求按原邮件语言回复。"""
-    skill = DraftSkill()
+    skill = DraftAgent()
     messages = skill.build_messages(
         DraftInput(
             instruction="x",
@@ -255,7 +257,7 @@ async def test_skill_handles_bad_response() -> None:
     """Mock LLM 未注册该 skill 的响应时应返回 error 而不抛异常。"""
     m = MockLLM()
     m._responses.clear()  # 模拟没注册
-    skill = SummarySkill()
+    skill = SummaryAgent()
     inp = EmailInput(subject="x", body_text="y")
     result = await skill.run(m, inp)
     assert not result.ok

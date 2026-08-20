@@ -95,19 +95,26 @@ def resolve_user_settings(user_cfg: LLMSettings | None) -> LLMSettings:
 
 
 def _build_langchain_model(cfg: LLMSettings) -> BaseChatModel:
-    """构建 langchain ChatModel（OpenAI 兼容协议）。"""
+    """构建 langchain ChatModel（OpenAI 兼容协议）。
+
+    v2-M8.3: 导入 app.llm.minimax 触发 monkey-patch（在 langchain-openai ChatOpenAI 上注入 reasoning_content）
+    """
     from langchain_openai import ChatOpenAI
+    import app.llm.minimax  # noqa: F401  # 触发 monkey-patch
+
+    model_name = cfg.chat_model.lower()
+    is_minimax = model_name.startswith(("minimax", "abab"))
 
     kwargs: dict[str, Any] = {
         "model": cfg.chat_model,
         "api_key": cfg.api_key,
         "max_retries": cfg.max_retries,
         "timeout": cfg.timeout_seconds,
+        "stream_usage": True,  # v2-M8.1: 让 stream 模式也在最后 chunk 带 usage_metadata
     }
     if cfg.base_url:
         kwargs["base_url"] = cfg.base_url
-    # MiniMax-M3 等支持 Interleaved Thinking 的模型
-    if cfg.chat_model.lower().startswith(("minimax", "abab")):
+    if is_minimax:
         kwargs["extra_body"] = {"reasoning_split": True}
     return ChatOpenAI(**kwargs)
 

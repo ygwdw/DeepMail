@@ -56,17 +56,21 @@ async def test_me_requires_auth(async_client) -> None:
 
 
 async def test_register_then_me_flow(async_client) -> None:
+    import uuid as _uuid
+
+    # 用随机用户名，避免 conftest 不再清 users 导致的冲突
+    uname = f"tester_{_uuid.uuid4().hex[:8]}"
     # 注册新用户
     reg = await async_client.post(
         "/api/auth/register",
-        json={"username": "tester01", "password": "Tester@2026"},
+        json={"username": uname, "password": "Tester@2026"},
     )
     assert reg.status_code == 201, reg.text
 
     # 登录拿 token
     login = await async_client.post(
         "/api/auth/login",
-        json={"username": "tester01", "password": "Tester@2026"},
+        json={"username": uname, "password": "Tester@2026"},
     )
     assert login.status_code == 200, login.text
     body = login.json()
@@ -75,18 +79,21 @@ async def test_register_then_me_flow(async_client) -> None:
     # 用 token 调 /me
     me = await async_client.get("/api/me", headers={"Authorization": f"Bearer {access}"})
     assert me.status_code == 200
-    assert me.json()["username"] == "tester01"
+    assert me.json()["username"] == uname
 
 
 async def test_refresh_token_flow(async_client) -> None:
-    # 自己注册，避免依赖其他测试的状态
+    import uuid as _uuid
+
+    # 随机用户名，避免 conftest 不再清 users 导致的冲突
+    uname = f"refresher_{_uuid.uuid4().hex[:8]}"
     await async_client.post(
         "/api/auth/register",
-        json={"username": "refresher", "password": "Refresher@2026"},
+        json={"username": uname, "password": "Refresher@2026"},
     )
     login = await async_client.post(
         "/api/auth/login",
-        json={"username": "refresher", "password": "Refresher@2026"},
+        json={"username": uname, "password": "Refresher@2026"},
     )
     assert login.status_code == 200, login.text
     refresh = login.json()["refresh_token"]

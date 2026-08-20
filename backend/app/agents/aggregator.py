@@ -20,6 +20,24 @@ AGGREGATOR_PROMPT = """你是 DeepMail 的【汇总员】。多个 sub-agent 已
 """
 
 
+CHAT_NODE_PROMPT = """你是 DeepMail 的【聊天助手】。用户没有触发任何专业 agent（邮件/待办/草稿/知识库），
+这里直接以对话方式回复用户。保持友好、简洁，可以用上上下文里已有的用户画像等信息。
+中文回复（除非用户用其他语言）。"""
+
+
+async def chat_node(state: GraphState, llm) -> dict:
+    """v2-P2: 空路由时的直接聊天节点（纯 LLM 直答，不调用任何工具/agent）。"""
+    messages = state.get("messages") or []
+    if not messages:
+        messages = [HumanMessage(content=state.get("user_query", ""))]
+    # 把聊天提示放最前面（现有 messages 可能已含 persona/L5 系统消息 + 历史）
+    msgs = [SystemMessage(content=CHAT_NODE_PROMPT), *messages]
+    response = await llm.ainvoke(msgs)
+    final = response.content if isinstance(response.content, str) else str(response.content)
+    _logger.info("chat_node_direct", query=state.get("user_query", "")[:80], final_len=len(final))
+    return {"final_response": final, "current_intent": "chat"}
+
+
 async def aggregator_node(state: GraphState, llm) -> dict:
     """汇总所有 sub-agent 的最后一条 AI 消息。"""
     messages = state.get("messages", [])

@@ -21,4 +21,14 @@ export const emailsApi = {
     const { data } = await api.post(`/emails/${id}/draft`, payload)
     return data
   },
+  // v2-M12: 批量重新分类/打标
+  async reclassify(emailIds: string[], doTag = true): Promise<{ processed: number; failed: Array<{ email_id: string; error: string }> }> {
+    const { data } = await api.post('/emails/reclassify', { email_ids: emailIds, do_tag: doTag })
+    return data
+  },
+  // v2-M12: 发送邮件（真实 SMTP）
+  async send(payload: { to: string[]; cc?: string[]; subject: string; body_text: string; body_html?: string }): Promise<{ sent: boolean; email_id: string; folder: string }> {
+    const { data } = await api.post('/emails/send', payload)
+    return data
+  },
 }

@@ -1,25 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import dayjs from 'dayjs'
-import {
-  NCard, NSpace, NButton, NSpin, NTag, NDivider, NInput, NRadioGroup, NRadio,
-  useMessage, NCollapse, NCollapseItem,
-} from 'naive-ui'
+import { NSpin, NButton, NTag, NScrollbar, useMessage } from 'naive-ui'
 import { emailsApi } from '@/api/emails'
-import { aiApi } from '@/api/ai'
+import { aiApi, unwrapTodoOutput } from '@/api/ai'
 import { getErrorMessage } from '@/api/client'
-import type { EmailRead } from '@/types/api'
+import type { EmailRead, EmailTodoItem } from '@/types/api'
+import EmailMetaCard from '@/components/EmailMetaCard.vue'
+import SummaryCard from '@/components/SummaryCard.vue'
+import TodoCard from '@/components/TodoCard.vue'
+import BodyCard from '@/components/BodyCard.vue'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
 const message = useMessage()
 
-const loading = ref(false)
 const email = ref<EmailRead | null>(null)
-
-const skillLoading = ref<string | null>(null)
-const skillResults = ref<Record<string, unknown>>({})
+const loading = ref(false)
 
 async function load(): Promise<void> {
   loading.value = true
@@ -32,159 +29,125 @@ async function load(): Promise<void> {
   }
 }
 
-async function runSkill(name: string): Promise<void> {
+async function regenSummary(): Promise<void> {
   if (!email.value) return
-  skillLoading.value = name
   try {
-    let result: unknown
-    if (name === 'process') {
-      result = await aiApi.process(email.value.id)
-    } else if (name === 'summary') {
-      result = await aiApi.summary(email.value.id)
-    } else if (name === 'todos') {
-      result = await aiApi.todos(email.value.id)
-    } else if (name === 'classify') {
-      result = await aiApi.classify(email.value.id)
-    } else if (name === 'spam') {
-      result = await aiApi.spam(email.value.id)
-    }
-    skillResults.value[name] = result
-    message.success(`${name} 完成`)
+    const r = await aiApi.summary(email.value.id)
+    if (email.value) email.value.summary = r.output.summary
+    message.success('摘要已重新生成')
   } catch (e) {
     message.error(getErrorMessage(e))
-  } finally {
-    skillLoading.value = null
   }
 }
 
-// Draft
-const draftInstruction = ref('礼貌确认')
-const draftTone = ref<'auto' | 'formal' | 'casual'>('auto')
-async function generateDraft(): Promise<void> {
+async function regenAll(): Promise<void> {
   if (!email.value) return
-  skillLoading.value = 'draft'
   try {
-    const r = await emailsApi.draft(email.value.id, {
-      instruction: draftInstruction.value,
-      tone: draftTone.value,
-    })
-    skillResults.value['draft'] = r
-    message.success('草稿生成完成')
+    await Promise.all([
+      aiApi.summary(email.value.id).then((r) => { if (email.value) email.value.summary = r.output.summary }),
+      aiApi.todos(email.value.id).then((r) => { if (email.value) email.value.todos_extracted = unwrapTodoOutput(r) }),
+      aiApi.classify(email.value.id).then((r) => { if (email.value) email.value.categories = [r.output.category_name] }),
+    ])
+    message.success('已重新生成')
   } catch (e) {
     message.error(getErrorMessage(e))
-  } finally {
-    skillLoading.value = null
   }
 }
 
-const sentAt = computed(() =>
-  email.value ? dayjs(email.value.sent_at).format('YYYY-MM-DD HH:mm') : '',
-)
+function reply(): void {
+  if (!email.value) return
+  router.push({ name: 'compose', query: { reply_to: email.value.id } })
+}
 
-onMounted(load)
+async function autoFillMissingAI(): Promise<void> {
+  if (!email.value) return
+  const e = email.value
+  const tasks: Array<Promise<void>> = []
+  if (!e.summary) {
+    tasks.push(
+      aiApi.summary(e.id)
+        .then((r) => { if (email.value) email.value.summary = r.output.summary })
+        .catch(() => {}),
+    )
+  }
+  if (!e.categories || e.categories.length === 0) {
+    tasks.push(
+      aiApi.classify(e.id)
+        .then((r) => { if (email.value) email.value.categories = [r.output.category_name] })
+        .catch(() => {}),
+    )
+  }
+  tasks.push(
+    aiApi.todos(e.id)
+      .then((r) => { if (email.value) email.value.todos_extracted = unwrapTodoOutput(r) })
+      .catch(() => {}),
+  )
+  void Promise.allSettled(tasks)
+}
+
+onMounted(async () => {
+  await load()
+  await autoFillMissingAI()
+})
 </script>
 
 <template>
   <NSpin :show="loading">
-    <NCard v-if="email">
-      <template #header>
-        <div class="header-row">
-          <NButton text @click="router.back()">← 返回</NButton>
-          <span class="subject">{{ email.subject }}</span>
-        </div>
-      </template>
-      <template #header-extra>
-        <NSpace>
-          <NTag v-if="email.folder === 'spam'" type="error">垃圾</NTag>
-          <NTag v-for="c in email.categories" :key="c">{{ c }}</NTag>
-        </NSpace>
-      </template>
-
-      <div class="meta muted">
-        <div><strong>发件人：</strong>{{ email.sender_name }} &lt;{{ email.sender_email }}&gt;</div>
-        <div><strong>收件人：</strong>{{ email.recipients.join(', ') }}</div>
-        <div v-if="email.cc.length"><strong>抄送：</strong>{{ email.cc.join(', ') }}</div>
-        <div><strong>时间：</strong>{{ sentAt }}</div>
-        <div v-if="email.labels.length"><strong>标签：</strong>
-          <NTag v-for="l in email.labels" :key="l" type="info" size="small" :bordered="false">#{{ l }}</NTag>
-        </div>
+    <div v-if="email" class="detail-container">
+      <div class="detail-header">
+        <NButton text @click="router.back()">← 返回</NButton>
+        <NButton type="primary" @click="reply">📧 回信</NButton>
+        <NButton @click="regenAll">🔄 重新摘要</NButton>
+        <NTag v-if="email.folder === 'spam'" type="error" :bordered="false">垃圾</NTag>
       </div>
+      <h1 class="subject">{{ email.subject || '(无主题)' }}</h1>
 
-      <NDivider />
-
-      <div v-if="email.summary" class="summary">
-        <strong>AI 摘要：</strong>{{ email.summary }}
-      </div>
-
-      <pre class="body">{{ email.body_text }}</pre>
-
-      <NDivider />
-
-      <h3>AI 技能</h3>
-      <NSpace>
-        <NButton @click="runSkill('process')" :loading="skillLoading === 'process'">完整 process</NButton>
-        <NButton @click="runSkill('summary')" :loading="skillLoading === 'summary'">摘要</NButton>
-        <NButton @click="runSkill('todos')" :loading="skillLoading === 'todos'">提取待办</NButton>
-        <NButton @click="runSkill('classify')" :loading="skillLoading === 'classify'">分类</NButton>
-        <NButton @click="runSkill('spam')" :loading="skillLoading === 'spam'">垃圾评分</NButton>
-      </NSpace>
-
-      <NDivider />
-
-      <h3>起草回复</h3>
-      <NSpace align="center" :wrap="false">
-        <NInput v-model:value="draftInstruction" placeholder="回复要求" style="flex: 1" />
-        <NRadioGroup v-model:value="draftTone">
-          <NRadio value="auto">auto</NRadio>
-          <NRadio value="formal">正式</NRadio>
-          <NRadio value="casual">轻松</NRadio>
-        </NRadioGroup>
-        <NButton type="primary" @click="generateDraft" :loading="skillLoading === 'draft'">生成草稿</NButton>
-      </NSpace>
-
-      <NCollapse v-if="Object.keys(skillResults).length" style="margin-top: 16px">
-        <NCollapseItem v-for="(result, name) in skillResults" :key="name" :title="`${name} 结果`">
-          <pre class="result">{{ JSON.stringify(result, null, 2) }}</pre>
-        </NCollapseItem>
-      </NCollapse>
-    </NCard>
+      <NScrollbar class="scroll-area">
+        <EmailMetaCard :email="email" />
+        <SummaryCard :summary="email.summary" />
+        <div class="divider"></div>
+        <TodoCard :todos="(email.todos_extracted || []) as EmailTodoItem[]" />
+        <div class="divider"></div>
+        <BodyCard :body="email.body_text" />
+      </NScrollbar>
+    </div>
   </NSpin>
 </template>
 
 <style scoped>
-.header-row {
+.detail-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  margin: -16px;
+  overflow: hidden;
+}
+.detail-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--n-divider-color);
+  background: var(--n-card-color);
+  flex-shrink: 0;
 }
 .subject {
+  font-size: 20px;
   font-weight: 600;
-  font-size: 16px;
+  margin: 12px 20px 8px 20px;
+  color: var(--n-text-color-1);
+  line-height: 1.4;
+  flex-shrink: 0;
 }
-.meta {
-  font-size: 13px;
-  line-height: 1.8;
+.scroll-area {
+  flex: 1;
+  padding: 0 20px 20px 20px;
 }
-.summary {
-  background: var(--n-hover-color);
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-.body {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: inherit;
-  line-height: 1.7;
-}
-.result {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 12px;
-  max-height: 400px;
-  overflow: auto;
-  background: var(--n-card-color);
-  padding: 8px;
-  border-radius: 4px;
+.divider {
+  height: 2px;
+  background: linear-gradient(to right, transparent, var(--n-divider-color) 20%, var(--n-divider-color) 80%, transparent);
+  margin: 14px 0;
+  width: 100%;
+  flex-shrink: 0;
 }
 </style>

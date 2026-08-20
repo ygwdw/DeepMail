@@ -27,7 +27,11 @@ def configure_langsmith() -> bool:
     api_key = os.getenv("LANGSMITH_API_KEY") or settings.langsmith_api_key
     project = os.getenv("LANGSMITH_PROJECT") or settings.langsmith_project
     endpoint = os.getenv("LANGSMITH_ENDPOINT") or settings.langsmith_endpoint
-    enabled_env = os.getenv("LANGSMITH_TRACING", "").lower() in ("1", "true", "yes")
+    # v2-P2: 兼容 .env 的 LANGSMITH_TRACING=true（pydantic-settings 读到 langsmith_tracing）
+    enabled_env = (
+        os.getenv("LANGSMITH_TRACING", "").lower() in ("1", "true", "yes")
+        or settings.langsmith_tracing
+    )
 
     if not (api_key and enabled_env):
         _logger.info("langsmith_disabled", reason="no API key or LANGSMITH_TRACING not set")

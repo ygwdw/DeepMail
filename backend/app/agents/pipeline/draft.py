@@ -1,11 +1,11 @@
-"""辅助起草回复 Skill。"""
+"""辅助起草回复 Agent（PipelineAgent）。"""
 
 from __future__ import annotations
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.schemas import DraftInput, DraftOutput
-from app.agents.skills.base import Skill
+from app.agents.pipeline.base import PipelineAgent
 
 SYSTEM_PROMPT = """你是 DeepMail 助手，根据用户指示起草一封回复邮件。
 
@@ -22,7 +22,7 @@ draft_text 中可以引用原邮件的关键信息，但不要大段复述。
 {PERSONA_BLOCK}"""
 
 
-class DraftSkill(Skill[DraftInput, DraftOutput]):
+class DraftAgent(PipelineAgent[DraftInput, DraftOutput]):
     name = "draft"
     input_schema = DraftInput
     output_schema = DraftOutput
@@ -43,7 +43,7 @@ class DraftSkill(Skill[DraftInput, DraftOutput]):
 
     def parse_from_markdown(self, text: str) -> DraftOutput | None:
         """兜底：把 LLM 整段输出（去 think）作为 draft_text。"""
-        from app.agents.skills.base import _strip_think
+        from app.agents.pipeline.base import _strip_think
 
         cleaned = _strip_think(text).strip()
         if not cleaned:

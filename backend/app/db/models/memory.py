@@ -37,6 +37,17 @@ class MemoryMediumTopic(UUIDPrimaryKeyMixin, Base):
     topic: Mapped[str] = mapped_column(String(255), nullable=False)
     summary: Mapped[str] = mapped_column(Text, default="", nullable=False)
     embedding = mapped_column(Vector(_EMBED_DIM), nullable=True)
+    # v2-M4.1: 来源追溯（哪封邮件/哪个会话产生的 topic）
+    email_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), nullable=True, index=True
+    )
+    chat_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), nullable=True, index=True
+    )
+    # 聚类到 L3 后回填 cluster_id
+    cluster_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), nullable=True, index=True
+    )
     created_at: Mapped[DateTime] = mapped_column(  # type: ignore[valid-type]
         DateTime(timezone=True), default=_utcnow, nullable=False
     )

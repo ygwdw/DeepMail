@@ -5,7 +5,9 @@ from __future__ import annotations
 import enum
 import uuid
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String, UniqueConstraint
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -39,6 +41,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     token_budget: Mapped[int] = mapped_column(Integer, default=8000, nullable=False)
+    # v2-P1: 上次 L3 聚类运行时间（手动端点 + 每日定时任务共同更新）
+    last_cluster_run_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     llm_config: Mapped[LLMConfig | None] = relationship(
         back_populates="user",

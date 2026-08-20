@@ -15,7 +15,23 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from pydantic import BaseModel
 
-# Skill 通过 contextvar 把要查找的 fixture key 注入；避免从嵌套类型（list[TodoItem]）
+
+def _mock_usage(messages: list[BaseMessage], output_text: str) -> dict[str, int]:
+    """按 input/output 字符数 / 4 估算 token（mock 模式填充 usage_metadata）。
+
+    用 AIMessage.usage_metadata 字段，让 chat_service 能从 LLM 返回里取真实 usage。
+    total_tokens = input + output（保持三者一致）。
+    """
+    input_chars = sum(len(str(getattr(m, "content", ""))) for m in messages)
+    input_tokens = max(input_chars // 4, 1)
+    output_tokens = max(len(output_text) // 4, 1)
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": input_tokens + output_tokens,
+    }
+
+# PipelineAgent 通过 contextvar 把要查找的 fixture key 注入；避免从嵌套类型（list[TodoItem]）
 # 反推 key 失败。
 _current_mock_key: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "_current_mock_key", default=None
@@ -80,7 +96,10 @@ class MockLLM(BaseChatModel):
             self._tool_call_count += 1
             if self._tool_call_count >= 2:
                 # 返回 stop（无 tool_call，agent 会结束）
-                msg = AIMessage(content="（mock 终止）")
+                msg = AIMessage(
+                    content="（mock 终止）",
+                    usage_metadata=_mock_usage(messages, "（mock 终止）"),
+                )
                 return ChatResult(generations=[ChatGeneration(message=msg)])
 
             from langchain_core.messages import ToolCall
@@ -89,7 +108,11 @@ class MockLLM(BaseChatModel):
             tool_name = getattr(tool, "name", str(tool))
             mock_args = getattr(tool, "mock_args", {}) or {}
             call = ToolCall(name=tool_name, args=mock_args, id=f"mock_call_{uuid.uuid4().hex[:8]}")
-            msg = AIMessage(content="(mock tool call)", tool_calls=[call])
+            msg = AIMessage(
+                content="(mock tool call)",
+                tool_calls=[call],
+                usage_metadata=_mock_usage(messages, "(mock tool call)"),
+            )
             return ChatResult(generations=[ChatGeneration(message=msg)])
 
         schema = _extract_schema(kwargs)
@@ -102,7 +125,7 @@ class MockLLM(BaseChatModel):
             )
         if not isinstance(content, str):
             content = json.dumps(content, ensure_ascii=False)
-        msg = AIMessage(content=content)
+        msg = AIMessage(content=content, usage_metadata=_mock_usage(messages, content))
         return ChatResult(generations=[ChatGeneration(message=msg)])
 
     async def _agenerate(
@@ -211,7 +234,7 @@ _DEFAULT_RESPONSES: dict[str, Any] = {
             "移动端需要增加离线缓存功能",
         ],
     },
-    "todo_extract": [
+    "todo_extract": {"items": [
         {
             "content": "在产品中添加暗黑模式",
             "due_date": None,
@@ -227,7 +250,7 @@ _DEFAULT_RESPONSES: dict[str, Any] = {
             "due_date": None,
             "priority": "low",
         },
-    ],
+    ]},
     "entity_extract": {
         "entities": [
             {"name": "吴女士", "type": "person"},
@@ -272,6 +295,8 @@ _DEFAULT_RESPONSES: dict[str, Any] = {
         "agents": ["email"],
         "reasoning": "(mock default routing: route to email agent)",
     },
+    # v2-P2: 聊天直答节点默认回复（测试可覆盖；生产走真实 LLM）
+    "chat_direct": "（mock 聊天回复：用户未触发任何 agent）",
 }
 
 
@@ -294,8 +319,19 @@ def _extract_schema(kwargs: dict[str, Any]) -> type[BaseModel] | None:
 
 
 def _guess_key(messages: list[BaseMessage], schema: type[BaseModel] | None) -> str:
-    """根据 schema 类型猜 key（基础 fallback）。"""
+    """根据 schema 类型猜 key（基础 fallback）。
+
+    v2-P2: supervisor / chat_node / topic 提取走手动 ainvoke（无 schema），
+    按 system prompt 内容识别调用方，让 mock 能精确控制路由决策与直聊回复。
+    """
     if schema is None:
+        joined = "".join(str(getattr(m, "content", "")) for m in messages)
+        if "调度员" in joined:
+            return "routingdecision"
+        if "话题提炼助手" in joined:
+            return "topic_extract"
+        if "聊天助手" in joined:
+            return "chat_direct"
         return "summary"
     return _strip_schema_suffix(getattr(schema, "__name__", str(schema)))
 

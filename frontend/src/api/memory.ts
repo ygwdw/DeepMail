@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { EventDetailRead, EventRead, LongTermRead, TopicRead } from '@/types/api'
+import type { ClusterLastRun, ClusterRunResult, EventDetailRead, EventRead, LongTermRead, TopicRead } from '@/types/api'
 
 export const memoryApi = {
   // L2 topics
@@ -30,6 +30,17 @@ export const memoryApi = {
     const { data } = await api.post<EventRead[]>('/memory/events/extract', null, {
       params: { days, min_topics: minTopics },
     })
+    return data
+  },
+  // v2-P1: 手动触发 L2→L3 聚类 + 上次聚类时间
+  async runCluster(days: number = 7, minTopics: number = 2, threshold: number = 0.85): Promise<ClusterRunResult> {
+    const { data } = await api.post<ClusterRunResult>('/memory/cluster', null, {
+      params: { days, min_topics: minTopics, threshold },
+    })
+    return data
+  },
+  async lastClusterRun(): Promise<ClusterLastRun> {
+    const { data } = await api.get<ClusterLastRun>('/memory/cluster/last-updated')
     return data
   },
   // L4 long-term

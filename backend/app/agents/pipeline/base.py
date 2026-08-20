@@ -1,4 +1,9 @@
-"""Skill 抽象基类。"""
+"""PipelineAgent 抽象基类：单点 AI 能力 agent（非编排型 sub-agent）。
+
+原 Skill 命名（v2-P4 改为 agent）：每个 PipelineAgent 接收输入 → 调 LLM
+（优先 structured output，失败兜底文本解析）→ 返回结构化结果。
+区别于 LangGraph 的 sub-agent（email/todo/draft/rag/tidy 那些编排 agent）。
+"""
 
 from __future__ import annotations
 
@@ -41,10 +46,11 @@ def _strip_code_fence(text: str) -> str:
 
 
 def _extract_json(text: str) -> str:
-    """从夹杂文本中提取第一个 JSON 块（{} 或 []）。"""
+    """从夹杂文本中提取第一个 JSON 块（优先 []，其次 {}）。"""
     cleaned = _strip_think(text)
     cleaned = _strip_code_fence(cleaned)
-    for opener, closer in [("{", "}"), ("[", "]")]:
+    # v2-M4.2: 优先找数组（顶层 list），避免 list[{}] 时只取首个 dict
+    for opener, closer in [("[", "]"), ("{", "}")]:
         start = cleaned.find(opener)
         if start == -1:
             continue
@@ -74,8 +80,8 @@ def _extract_json(text: str) -> str:
 
 
 @dataclass
-class SkillResult[TOut]:
-    """单次 Skill 执行结果。"""
+class PipelineResult[TOut]:
+    """单次 PipelineAgent 执行结果。"""
 
     output: TOut | None
     tokens_prompt: int = 0
@@ -92,10 +98,10 @@ class SkillResult[TOut]:
         return self.tokens_prompt + self.tokens_completion
 
 
-class Skill[TIn: BaseModel, TOut](ABC):
-    """所有 Skill 的抽象基类。"""
+class PipelineAgent[TIn: BaseModel, TOut](ABC):
+    """所有单点 AI 能力 agent 的抽象基类（v2-P4 由 Skill 改名）。"""
 
-    name: str = "skill"
+    name: str = "pipeline_agent"
     input_schema: type[TIn]
     output_schema: type[TOut]
 
@@ -115,8 +121,8 @@ class Skill[TIn: BaseModel, TOut](ABC):
 
         return inject_time_to_prompt(system + JSON_ONLY_SUFFIX)
 
-    async def run(self, llm: BaseChatModel, inp: TIn) -> SkillResult[TOut]:
-        """主入口：调用 LLM 并返回 SkillResult。
+    async def run(self, llm: BaseChatModel, inp: TIn) -> PipelineResult[TOut]:
+        """主入口：调用 LLM 并返回 PipelineResult。
 
         策略：
         1. 优先尝试 `with_structured_output`（Mock LLM 与支持 tool calling 的模型）
@@ -129,21 +135,19 @@ class Skill[TIn: BaseModel, TOut](ABC):
             try:
                 structured = llm.with_structured_output(self.output_schema)
                 raw = await structured.ainvoke(messages)
-                print("raw:", raw)
                 output = self._coerce_output(raw)
-            except Exception as e:
+            except Exception:
                 # 兜底：直接拿 raw str（适配 thinking model）
-                print("ERROR:", e)
                 response = await llm.ainvoke(messages)
                 content = response.content if hasattr(response, "content") else str(response)
                 output = self._parse_from_text(content)
 
             output = self.post_process(output)
             latency = int((time.perf_counter() - t0) * 1000)
-            return SkillResult[TOut](output=output, latency_ms=latency)
+            return PipelineResult[TOut](output=output, latency_ms=latency)
         except Exception as exc:
             latency = int((time.perf_counter() - t0) * 1000)
-            return SkillResult[TOut](
+            return PipelineResult[TOut](
                 output=None,
                 latency_ms=latency,
                 error=f"{type(exc).__name__}: {exc}",
@@ -169,6 +173,12 @@ class Skill[TIn: BaseModel, TOut](ABC):
         if isinstance(raw, dict):
             return self.output_schema(**raw)  # type: ignore[return-value]
         if isinstance(raw, list):
+            # v2-M4.2: 兼容 LLM 返回裸 list 的场景
+            # 通用：找 wrapper class 第一个 list 字段，把 list 装进去
+            if isinstance(self.output_schema, type) and issubclass(self.output_schema, BaseModel):
+                wrapped = self._try_wrap_list(raw)
+                if wrapped is not None:
+                    return wrapped  # type: ignore[return-value]
             return raw  # type: ignore[return-value]
         if isinstance(raw, str):
             return self._parse_from_text(raw)
@@ -180,6 +190,31 @@ class Skill[TIn: BaseModel, TOut](ABC):
             [{"type": "value_error", "input": raw, "ctx": {"error": "unsupported raw type"}}],
         )
 
+    def _try_wrap_list(self, raw: list) -> object | None:
+        """v2-M4.2: 把裸 list 包成 wrapper class。
+
+        启发式：取 wrapper class 第一个 list[...] 类型的字段，把 raw 装进去；
+        同 schema 内其他 list 字段默认为空 list（让 Pydantic 用 default_factory）。
+        """
+        if not (isinstance(self.output_schema, type) and issubclass(self.output_schema, BaseModel)):
+            return None
+        target_field: str | None = None
+        for name, f in self.output_schema.model_fields.items():
+            ann = getattr(f, "annotation", None)
+            origin = getattr(ann, "__origin__", None)
+            if origin in (list, list) or ann is list:
+                target_field = name
+                break
+        if target_field is None:
+            return None
+        try:
+            return self.output_schema(**{target_field: raw})  # type: ignore[arg-type]
+        except Exception:
+            try:
+                return self.output_schema(items=raw) if "items" in self.output_schema.model_fields else None  # type: ignore[arg-type]
+            except Exception:
+                return None
+
     def _parse_from_text(self, text: str) -> TOut:
         """从 raw text 解析：(1) JSON 提取 (2) markdown 兜底"""
         # 1. JSON 提取
@@ -187,6 +222,10 @@ class Skill[TIn: BaseModel, TOut](ABC):
             json_text = _extract_json(text)
             data = json.loads(json_text)
             if isinstance(data, list):
+                # v2-M4.2: 兼容裸 list → wrapper class（启发式：第一个 list 字段）
+                wrapped = self._try_wrap_list(data)
+                if wrapped is not None:
+                    return wrapped  # type: ignore[return-value]
                 return data  # type: ignore[return-value]
             return self.output_schema(**data)  # type: ignore[return-value]
         except Exception:
